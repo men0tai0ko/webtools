@@ -9,6 +9,7 @@
 - [AI副業タイプ診断](https://men0tai0ko.github.io/webtools/side-hustle-quiz/)([ソース](side-hustle-quiz/)) — 5問の質問から、向いているAI活用副業のタイプを診断(外部API不使用、全てブラウザ内で完結)
 - [AIプロンプトテンプレ集](https://men0tai0ko.github.io/webtools/prompt-library/)([ソース](prompt-library/)) — 記事作成・仕事効率化・SNS発信ですぐ使えるプロンプトをカテゴリ・キーワード検索してコピーできる(外部API不使用)
 - [フリーランス消費税・請求書計算機](https://men0tai0ko.github.io/webtools/freelance-tax-calculator/)([ソース](freelance-tax-calculator/)) — 請求書の税込・税抜計算と、インボイス登録した場合の消費税納税額(2割特例・簡易課税)を概算比較
+- [画像圧縮・リサイズツール](https://men0tai0ko.github.io/webtools/image-compressor/)([ソース](image-compressor/)) — 画像をブラウザ内(Canvas API)だけで圧縮・リサイズ。サーバー送信なし、外部API不使用
 
 ## 開発
 

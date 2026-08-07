@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>画像圧縮・リサイズツール | ブラウザだけで完結・無料</title>
+<meta name="description" content="画像をアップロードするだけで、ブラウザ内で圧縮・リサイズ。サーバーに画像を送信しないので安全。JPEG/PNG/WebP出力に対応した無料の画像圧縮ツールです。">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700;900&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #0e0e10;
+    --surface: #17171a;
+    --surface2: #1f1f24;
+    --border: #2a2a32;
+    --accent: #ff6b35;
+    --accent2: #ffd166;
+    --text: #e8e6e1;
+    --text-muted: #7a7880;
+    --green: #06d6a0;
+    --radius: 8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Mono', monospace;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  a { color: var(--accent2); }
+
+  header {
+    padding: 20px 28px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--surface);
+    flex-wrap: wrap;
+  }
+
+  .logo {
+    font-family: 'Noto Serif JP', serif;
+    font-weight: 900;
+    font-size: 22px;
+    letter-spacing: -0.5px;
+  }
+  .logo span { color: var(--accent); }
+
+  .badge {
+    font-size: 10px;
+    background: var(--accent);
+    color: #000;
+    padding: 2px 8px;
+    border-radius: 100px;
+    font-weight: 500;
+    letter-spacing: 1px;
+  }
+
+  header p {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-left: auto;
+  }
+
+  .wrap {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 28px 20px 60px;
+  }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px;
+    margin-bottom: 20px;
+  }
+
+  /* ─── DROPZONE ─── */
+  #dropzone {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 50px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .2s, background .2s;
+  }
+  #dropzone:hover, #dropzone.dragover { border-color: var(--accent); background: var(--surface2); }
+  #dropzone .icon { font-size: 32px; margin-bottom: 12px; color: var(--text-muted); }
+  #dropzone .main-text { font-size: 14px; margin-bottom: 6px; }
+  #dropzone .sub-text { font-size: 12px; color: var(--text-muted); }
+  #fileInput { display: none; }
+
+  /* ─── EDITOR ─── */
+  #editorSection { display: none; }
+
+  .compare-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  @media (max-width: 640px) { .compare-grid { grid-template-columns: 1fr; } }
+
+  .compare-box {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px;
+    text-align: center;
+  }
+  .compare-box .label {
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+  .compare-box img {
+    max-width: 100%;
+    max-height: 220px;
+    border-radius: 4px;
+    display: block;
+    margin: 0 auto 10px;
+    background:
+      linear-gradient(45deg, #2a2a32 25%, transparent 25%),
+      linear-gradient(-45deg, #2a2a32 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #2a2a32 75%),
+      linear-gradient(-45deg, transparent 75%, #2a2a32 75%);
+    background-size: 16px 16px;
+    background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+  }
+  .compare-box .size { font-size: 15px; font-weight: 500; }
+  .compare-box .dims { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .compare-box .savings { font-size: 12px; color: var(--green); margin-top: 6px; }
+
+  .field { margin-bottom: 16px; }
+  .field:last-child { margin-bottom: 0; }
+  .label {
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    display: block;
+  }
+
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 520px) { .row2 { grid-template-columns: 1fr; } }
+
+  select, input[type="number"] {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    padding: 10px 12px;
+    border-radius: var(--radius);
+    outline: none;
+  }
+  select:focus, input:focus { border-color: var(--accent); }
+
+  input[type="range"] { width: 100%; accent-color: var(--accent); }
+  .range-row { display: flex; align-items: center; gap: 12px; }
+  .range-row span { font-size: 13px; min-width: 42px; text-align: right; }
+
+  .checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .checkbox-row input { accent-color: var(--accent); }
+
+  .btn-row { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    font-family: 'DM Mono', monospace;
+    font-weight: 500;
+    font-size: 13px;
+    padding: 12px 22px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+  }
+  .btn-primary:hover { opacity: .9; }
+  .btn-secondary {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    padding: 12px 22px;
+    border-radius: var(--radius);
+    cursor: pointer;
+  }
+  .btn-secondary:hover { border-color: var(--accent2); color: var(--accent2); }
+
+  .hint { font-size: 11px; color: var(--text-muted); margin-top: 6px; line-height: 1.6; }
+
+  .privacy-note {
+    background: #10231d;
+    border: 1px solid #1a3d31;
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    font-size: 12px;
+    color: var(--green);
+    margin-bottom: 20px;
+  }
+
+  .explainer { margin-top: 40px; }
+  .explainer h2 {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 18px;
+    margin: 32px 0 12px;
+    color: var(--accent2);
+  }
+  .explainer h2:first-child { margin-top: 0; }
+  .explainer p, .explainer li { font-size: 13px; color: var(--text-muted); margin-bottom: 10px; }
+  .explainer ul { padding-left: 20px; }
+
+  .ad-slot {
+    display: none;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 11px;
+    letter-spacing: 1px;
+    margin: 28px 0;
+  }
+
+  footer {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-muted);
+    padding: 24px;
+    border-top: 1px solid var(--border);
+  }
+  footer a { color: var(--text-muted); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">画像<span>圧縮</span>ツール</div>
+  <span class="badge">BETA</span>
+  <p>ブラウザ内だけで圧縮・リサイズ、サーバーに画像は送信しません</p>
+</header>
+
+<div class="wrap">
+
+  <div class="privacy-note">
+    画像はサーバーにアップロードされず、お使いのブラウザの中だけで処理されます。ネットワークにも一切送信されません。
+  </div>
+
+  <div class="panel">
+    <div id="dropzone">
+      <div class="icon">＋</div>
+      <div class="main-text">クリックして画像を選択、またはドラッグ&ドロップ</div>
+      <div class="sub-text">JPEG / PNG / WebP に対応</div>
+      <input type="file" id="fileInput" accept="image/*">
+    </div>
+
+    <div id="editorSection">
+      <div class="compare-grid">
+        <div class="compare-box">
+          <div class="label">元画像</div>
+          <img id="originalPreview" alt="元画像プレビュー">
+          <div class="size" id="originalSize">-</div>
+          <div class="dims" id="originalDims">-</div>
+        </div>
+        <div class="compare-box">
+          <div class="label">圧縮後</div>
+          <img id="compressedPreview" alt="圧縮後プレビュー">
+          <div class="size" id="compressedSize">-</div>
+          <div class="dims" id="compressedDims">-</div>
+          <div class="savings" id="savingsText"></div>
+        </div>
+      </div>
+
+      <div class="row2">
+        <div class="field">
+          <label class="label" for="formatSelect">出力形式</label>
+          <select id="formatSelect">
+            <option value="image/jpeg">JPEG</option>
+            <option value="image/webp">WebP</option>
+            <option value="image/png">PNG(可逆・高圧縮率は出ません)</option>
+          </select>
+        </div>
+        <div class="field" id="qualityField">
+          <label class="label" for="qualitySlider">画質(数値が低いほど軽くなります)</label>
+          <div class="range-row">
+            <input type="range" id="qualitySlider" min="0.1" max="1" step="0.05" value="0.8">
+            <span id="qualityValue">80%</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="row2">
+        <div class="field">
+          <label class="label" for="widthInput">幅(px)</label>
+          <input type="number" id="widthInput" min="1">
+        </div>
+        <div class="field">
+          <label class="label" for="heightInput">高さ(px)</label>
+          <input type="number" id="heightInput" min="1">
+        </div>
+      </div>
+      <div class="field">
+        <label class="checkbox-row"><input type="checkbox" id="keepAspect" checked> 縦横比を維持する</label>
+      </div>
+
+      <div class="btn-row">
+        <a class="btn-primary" id="downloadBtn" href="#" download="compressed.jpg">ダウンロード</a>
+        <button class="btn-secondary" id="resetSizeBtn">元のサイズに戻す</button>
+        <button class="btn-secondary" id="newImageBtn">別の画像を選ぶ</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="ad-slot">広告枠(Google AdSense設置予定)</div>
+
+  <div class="explainer">
+    <h2>使い方</h2>
+    <p>画像をアップロードすると、自動的に圧縮結果がプレビューされます。画質スライダーやリサイズ幅・高さを調整すると、リアルタイムでファイルサイズが再計算されます。納得のいくサイズになったら「ダウンロード」を押してください。</p>
+
+    <h2>JPEG・WebP・PNGはどう使い分ける?</h2>
+    <ul>
+      <li><strong>JPEG</strong>: 写真など色数の多い画像向け。画質を少し落とすだけでファイルサイズを大きく減らせます。</li>
+      <li><strong>WebP</strong>: JPEGよりさらに高圧縮率。ただし古いソフトでは開けない場合があります。</li>
+      <li><strong>PNG</strong>: ロゴやスクリーンショットなど、輪郭のはっきりした画像・透過が必要な画像向け。画質劣化なしですが、写真の圧縮には不向きです。</li>
+    </ul>
+
+    <h2>あわせて使いたいツール</h2>
+    <p>AI活用や副業に関する他のミニツールは<a href="../">webtoolsトップ</a>からご覧いただけます。</p>
+  </div>
+</div>
+
+<footer>
+  すべての処理はブラウザ内(クライアントサイド)で完結し、画像データが外部に送信されることはありません。 &middot; <a href="../">webtools トップへ</a>
+</footer>
+
+<script>
+  const dropzone = document.getElementById('dropzone');
+  const fileInput = document.getElementById('fileInput');
+  const editorSection = document.getElementById('editorSection');
+  const originalPreview = document.getElementById('originalPreview');
+  const compressedPreview = document.getElementById('compressedPreview');
+  const originalSizeEl = document.getElementById('originalSize');
+  const originalDimsEl = document.getElementById('originalDims');
+  const compressedSizeEl = document.getElementById('compressedSize');
+  const compressedDimsEl = document.getElementById('compressedDims');
+  const savingsTextEl = document.getElementById('savingsText');
+  const formatSelect = document.getElementById('formatSelect');
+  const qualitySlider = document.getElementById('qualitySlider');
+  const qualityValue = document.getElementById('qualityValue');
+  const qualityField = document.getElementById('qualityField');
+  const widthInput = document.getElementById('widthInput');
+  const heightInput = document.getElementById('heightInput');
+  const keepAspect = document.getElementById('keepAspect');
+  const downloadBtn = document.getElementById('downloadBtn');
+  const resetSizeBtn = document.getElementById('resetSizeBtn');
+  const newImageBtn = document.getElementById('newImageBtn');
+
+  let originalImage = null;
+  let originalFileSize = 0;
+  let originalWidth = 0;
+  let originalHeight = 0;
+  let aspectRatio = 1;
+  let currentObjectUrl = null;
+  let recalcTimer = null;
+
+  function fmtBytes(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+  }
+
+  function loadFile(file) {
+    if (!file || !file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        originalImage = img;
+        originalFileSize = file.size;
+        originalWidth = img.naturalWidth;
+        originalHeight = img.naturalHeight;
+        aspectRatio = originalWidth / originalHeight;
+
+        originalPreview.src = e.target.result;
+        originalSizeEl.textContent = fmtBytes(originalFileSize);
+        originalDimsEl.textContent = `${originalWidth} × ${originalHeight}px`;
+
+        widthInput.value = originalWidth;
+        heightInput.value = originalHeight;
+
+        editorSection.style.display = 'block';
+        const ext = file.name.split('.').pop().toLowerCase();
+        formatSelect.value = (ext === 'png') ? 'image/png' : (ext === 'webp' ? 'image/webp' : 'image/jpeg');
+
+        recalc();
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function recalc() {
+    if (!originalImage) return;
+    const w = Math.max(1, parseInt(widthInput.value) || originalWidth);
+    const h = Math.max(1, parseInt(heightInput.value) || originalHeight);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(originalImage, 0, 0, w, h);
+
+    const format = formatSelect.value;
+    const quality = parseFloat(qualitySlider.value);
+    qualityField.style.opacity = format === 'image/png' ? 0.4 : 1;
+    qualityField.style.pointerEvents = format === 'image/png' ? 'none' : 'auto';
+
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+      if (currentObjectUrl) URL.revokeObjectURL(currentObjectUrl);
+      currentObjectUrl = URL.createObjectURL(blob);
+      compressedPreview.src = currentObjectUrl;
+      compressedSizeEl.textContent = fmtBytes(blob.size);
+      compressedDimsEl.textContent = `${w} × ${h}px`;
+
+      const diff = originalFileSize - blob.size;
+      const pct = originalFileSize > 0 ? (diff / originalFileSize) * 100 : 0;
+      savingsTextEl.textContent = diff >= 0
+        ? `元より ${pct.toFixed(0)}% 軽量化`
+        : `元より ${Math.abs(pct).toFixed(0)}% 増加`;
+      savingsTextEl.style.color = diff >= 0 ? 'var(--green)' : 'var(--accent)';
+
+      const extMap = { 'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/png': 'png' };
+      downloadBtn.href = currentObjectUrl;
+      downloadBtn.download = `compressed.${extMap[format]}`;
+    }, format, quality);
+  }
+
+  function scheduleRecalc() {
+    clearTimeout(recalcTimer);
+    recalcTimer = setTimeout(recalc, 80);
+  }
+
+  dropzone.addEventListener('click', () => fileInput.click());
+  dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
+  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+  dropzone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropzone.classList.remove('dragover');
+    if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]);
+  });
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files[0]) loadFile(fileInput.files[0]);
+  });
+
+  qualitySlider.addEventListener('input', () => {
+    qualityValue.textContent = Math.round(qualitySlider.value * 100) + '%';
+    scheduleRecalc();
+  });
+  formatSelect.addEventListener('change', scheduleRecalc);
+
+  widthInput.addEventListener('input', () => {
+    if (keepAspect.checked && originalImage) {
+      heightInput.value = Math.round((parseInt(widthInput.value) || originalWidth) / aspectRatio);
+    }
+    scheduleRecalc();
+  });
+  heightInput.addEventListener('input', () => {
+    if (keepAspect.checked && originalImage) {
+      widthInput.value = Math.round((parseInt(heightInput.value) || originalHeight) * aspectRatio);
+    }
+    scheduleRecalc();
+  });
+
+  resetSizeBtn.addEventListener('click', () => {
+    widthInput.value = originalWidth;
+    heightInput.value = originalHeight;
+    recalc();
+  });
+
+  newImageBtn.addEventListener('click', () => {
+    editorSection.style.display = 'none';
+    fileInput.value = '';
+    originalImage = null;
+  });
+</script>
+
+</body>
+</html>
