@@ -346,9 +346,11 @@
   const inclResultEl = document.getElementById('inclResult');
 
   function applyRounding(n, mode) {
-    if (mode === 'floor') return Math.floor(n);
-    if (mode === 'ceil') return Math.ceil(n);
-    return Math.round(n);
+    // 浮動小数点誤差(例: 110000/1.1 が 99999.999999... になる)を丸め込んでから端数処理する
+    const corrected = Math.round(n * 1e6) / 1e6;
+    if (mode === 'floor') return Math.floor(corrected);
+    if (mode === 'ceil') return Math.ceil(corrected);
+    return Math.round(corrected);
   }
 
   function fmtYen(n) {
