@@ -472,12 +472,14 @@
     inputTokenCountEl.textContent = autoTokens.toLocaleString();
 
     const inputTokens = getInputTokens();
-    const outputTokens = parseFloat(outputTokensEl.value) || 0;
-    const monthlyReq = parseFloat(monthlyReqEl.value) || 0;
+    const outputTokens = Math.max(0, parseFloat(outputTokensEl.value) || 0);
+    const monthlyReq = Math.max(0, parseFloat(monthlyReqEl.value) || 0);
 
     const rows = models.map(m => {
-      const inPrice = parseFloat(document.getElementById('in-' + m.id)?.value ?? m.in);
-      const outPrice = parseFloat(document.getElementById('out-' + m.id)?.value ?? m.out);
+      const inPriceRaw = parseFloat(document.getElementById('in-' + m.id)?.value ?? m.in);
+      const outPriceRaw = parseFloat(document.getElementById('out-' + m.id)?.value ?? m.out);
+      const inPrice = isNaN(inPriceRaw) ? m.in : inPriceRaw;
+      const outPrice = isNaN(outPriceRaw) ? m.out : outPriceRaw;
       const costPerReqUsd = (inputTokens / 1e6) * inPrice + (outputTokens / 1e6) * outPrice;
       const monthlyUsd = costPerReqUsd * monthlyReq;
       return { ...m, inPrice, outPrice, costPerReqUsd, monthlyUsd };

@@ -358,7 +358,7 @@
   }
 
   function calcInvoice() {
-    const amount = parseFloat(amountInput.value) || 0;
+    const amount = Math.max(0, parseFloat(amountInput.value) || 0);
     const rMode = roundingSelect.value;
     let excl, tax, incl;
     if (mode === 'excl') {
