@@ -219,6 +219,19 @@
     margin-bottom: 20px;
   }
 
+  .error-note {
+    display: none;
+    background: #2a1414;
+    border: 1px solid #4a2020;
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    font-size: 12px;
+    color: #ff8a8a;
+    margin-top: 14px;
+  }
+
+  #dropzone:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
   .explainer { margin-top: 40px; }
   .explainer h2 {
     font-family: 'Noto Serif JP', serif;
@@ -267,12 +280,13 @@
   </div>
 
   <div class="panel">
-    <div id="dropzone">
+    <div id="dropzone" role="button" tabindex="0" aria-label="画像を選択(クリックまたはEnterキー)">
       <div class="icon">＋</div>
       <div class="main-text">クリックして画像を選択、またはドラッグ&ドロップ</div>
       <div class="sub-text">JPEG / PNG / WebP に対応</div>
       <input type="file" id="fileInput" accept="image/*">
     </div>
+    <div class="error-note" id="errorNote"></div>
 
     <div id="editorSection">
       <div class="compare-grid">
@@ -374,6 +388,9 @@
   const downloadBtn = document.getElementById('downloadBtn');
   const resetSizeBtn = document.getElementById('resetSizeBtn');
   const newImageBtn = document.getElementById('newImageBtn');
+  const errorNote = document.getElementById('errorNote');
+
+  const MAX_DIMENSION = 8000;
 
   let originalImage = null;
   let originalFileSize = 0;
@@ -389,11 +406,28 @@
     return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
   }
 
+  function showError(message) {
+    errorNote.textContent = message;
+    errorNote.style.display = message ? 'block' : 'none';
+  }
+
+  // "0"がJSの偽値扱いで originalWidth にフォールバックしてしまうのを避けるための数値パース
+  function parsePositiveInt(value, fallback) {
+    const n = parseInt(value, 10);
+    return Number.isFinite(n) && n > 0 ? n : fallback;
+  }
+
   function loadFile(file) {
-    if (!file || !file.type.startsWith('image/')) return;
+    showError('');
+    if (!file || !file.type.startsWith('image/')) {
+      showError('画像ファイル(JPEG・PNG・WebPなど)を選択してください。');
+      return;
+    }
     const reader = new FileReader();
+    reader.onerror = () => showError('ファイルの読み込みに失敗しました。別の画像でお試しください。');
     reader.onload = (e) => {
       const img = new Image();
+      img.onerror = () => showError('画像の読み込みに失敗しました。ファイルが壊れていないかご確認ください。');
       img.onload = () => {
         originalImage = img;
         originalFileSize = file.size;
@@ -421,8 +455,13 @@
 
   function recalc() {
     if (!originalImage) return;
-    const w = Math.max(1, parseInt(widthInput.value) || originalWidth);
-    const h = Math.max(1, parseInt(heightInput.value) || originalHeight);
+    const w = Math.min(MAX_DIMENSION, parsePositiveInt(widthInput.value, originalWidth));
+    const h = Math.min(MAX_DIMENSION, parsePositiveInt(heightInput.value, originalHeight));
+    if (parseInt(widthInput.value, 10) > MAX_DIMENSION || parseInt(heightInput.value, 10) > MAX_DIMENSION) {
+      showError(`幅・高さは${MAX_DIMENSION}px以下にしてください。`);
+    } else {
+      showError('');
+    }
 
     const canvas = document.createElement('canvas');
     canvas.width = w;
@@ -436,7 +475,10 @@
     qualityField.style.pointerEvents = format === 'image/png' ? 'none' : 'auto';
 
     canvas.toBlob((blob) => {
-      if (!blob) return;
+      if (!blob) {
+        showError('この設定では画像を生成できませんでした。サイズや形式を変えてお試しください。');
+        return;
+      }
       if (currentObjectUrl) URL.revokeObjectURL(currentObjectUrl);
       currentObjectUrl = URL.createObjectURL(blob);
       compressedPreview.src = currentObjectUrl;
@@ -462,6 +504,12 @@
   }
 
   dropzone.addEventListener('click', () => fileInput.click());
+  dropzone.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      fileInput.click();
+    }
+  });
   dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
   dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
   dropzone.addEventListener('drop', (e) => {
@@ -481,13 +529,13 @@
 
   widthInput.addEventListener('input', () => {
     if (keepAspect.checked && originalImage) {
-      heightInput.value = Math.round((parseInt(widthInput.value) || originalWidth) / aspectRatio);
+      heightInput.value = Math.round(parsePositiveInt(widthInput.value, originalWidth) / aspectRatio);
     }
     scheduleRecalc();
   });
   heightInput.addEventListener('input', () => {
     if (keepAspect.checked && originalImage) {
-      widthInput.value = Math.round((parseInt(heightInput.value) || originalHeight) * aspectRatio);
+      widthInput.value = Math.round(parsePositiveInt(heightInput.value, originalHeight) * aspectRatio);
     }
     scheduleRecalc();
   });
@@ -502,6 +550,11 @@
     editorSection.style.display = 'none';
     fileInput.value = '';
     originalImage = null;
+    if (currentObjectUrl) {
+      URL.revokeObjectURL(currentObjectUrl);
+      currentObjectUrl = null;
+    }
+    showError('');
   });
 </script>
 
