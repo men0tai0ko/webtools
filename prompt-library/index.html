@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIプロンプトテンプレ集 | コピペで使えるChatGPT・Claude用プロンプト</title>
+<meta name="description" content="記事作成・仕事効率化・SNS発信・副業ですぐ使えるAIプロンプトのテンプレート集。カテゴリ・キーワードで検索し、ワンクリックでコピーできます。">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700;900&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #0e0e10;
+    --surface: #17171a;
+    --surface2: #1f1f24;
+    --border: #2a2a32;
+    --accent: #ff6b35;
+    --accent2: #ffd166;
+    --text: #e8e6e1;
+    --text-muted: #7a7880;
+    --green: #06d6a0;
+    --radius: 8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Mono', monospace;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  a { color: var(--accent2); }
+
+  header {
+    padding: 20px 28px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--surface);
+    flex-wrap: wrap;
+  }
+
+  .logo {
+    font-family: 'Noto Serif JP', serif;
+    font-weight: 900;
+    font-size: 22px;
+    letter-spacing: -0.5px;
+  }
+  .logo span { color: var(--accent); }
+
+  .badge {
+    font-size: 10px;
+    background: var(--accent);
+    color: #000;
+    padding: 2px 8px;
+    border-radius: 100px;
+    font-weight: 500;
+    letter-spacing: 1px;
+  }
+
+  header p {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-left: auto;
+  }
+
+  .wrap {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 28px 20px 60px;
+  }
+
+  /* ─── CONTROLS ─── */
+  .controls {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    margin-bottom: 20px;
+    position: sticky;
+    top: 12px;
+    z-index: 10;
+  }
+
+  #searchInput {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    padding: 11px 14px;
+    border-radius: var(--radius);
+    outline: none;
+    margin-bottom: 12px;
+  }
+  #searchInput:focus { border-color: var(--accent); }
+  #searchInput::placeholder { color: var(--text-muted); }
+
+  .chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .chip {
+    font-size: 12px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 6px 12px;
+    border-radius: 100px;
+    cursor: pointer;
+    transition: border-color .2s, color .2s, background .2s;
+  }
+  .chip:hover { border-color: var(--accent2); color: var(--accent2); }
+  .chip.active { border-color: var(--accent); background: #241a12; color: var(--accent2); }
+
+  .result-count {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 14px;
+  }
+
+  /* ─── PROMPT CARD ─── */
+  .prompt-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    margin-bottom: 14px;
+  }
+
+  .prompt-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    gap: 10px;
+  }
+
+  .prompt-cat {
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--accent2);
+  }
+
+  .prompt-title {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 15px;
+    margin-bottom: 10px;
+  }
+
+  .prompt-body {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    font-size: 12px;
+    color: var(--text);
+    white-space: pre-wrap;
+    line-height: 1.7;
+    margin-bottom: 10px;
+  }
+
+  .copy-btn {
+    font-size: 11px;
+    color: var(--text-muted);
+    background: none;
+    border: 1px solid var(--border);
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    transition: all .2s;
+  }
+  .copy-btn:hover { border-color: var(--green); color: var(--green); }
+  .copy-btn.copied { border-color: var(--green); color: var(--green); }
+
+  .no-results {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 13px;
+    padding: 40px 0;
+  }
+
+  .ad-slot {
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 11px;
+    letter-spacing: 1px;
+    margin: 28px 0;
+  }
+
+  .explainer { margin-top: 40px; }
+  .explainer h2 {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 18px;
+    margin: 32px 0 12px;
+    color: var(--accent2);
+  }
+  .explainer h2:first-child { margin-top: 0; }
+  .explainer p { font-size: 13px; color: var(--text-muted); margin-bottom: 10px; }
+
+  footer {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-muted);
+    padding: 24px;
+    border-top: 1px solid var(--border);
+  }
+  footer a { color: var(--text-muted); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">AI<span>プロンプト</span>テンプレ集</div>
+  <span class="badge">BETA</span>
+  <p>コピペですぐ使えるプロンプト集</p>
+</header>
+
+<div class="wrap">
+
+  <div class="controls">
+    <input type="text" id="searchInput" placeholder="キーワードで検索(例:議事録、タイトル、SNS)">
+    <div class="chip-row" id="chipRow"></div>
+  </div>
+
+  <div class="result-count" id="resultCount"></div>
+  <div id="promptList"></div>
+  <div class="no-results" id="noResults" style="display:none;">該当するプロンプトが見つかりませんでした。</div>
+
+  <div class="ad-slot">広告枠(Google AdSense設置予定)</div>
+
+  <div class="explainer">
+    <h2>使い方</h2>
+    <p>気になるプロンプトの「コピー」ボタンを押し、ChatGPTやClaudeなどのAIチャットに貼り付けてください。文中の[ ]で囲まれた部分は、実際の内容に置き換えて使います。</p>
+
+    <h2>もっとAI副業について知りたい方へ</h2>
+    <p>自分にどんなAI活用の仕方が向いているか気になる方は、<a href="../side-hustle-quiz/">AI副業タイプ診断</a>もあわせてどうぞ(1分で終わります)。AIの利用コストが気になる方は<a href="../ai-cost-calculator/">AIコスト計算機</a>もご活用ください。</p>
+  </div>
+</div>
+
+<footer>
+  プロンプトの効果はAIモデルや文脈により異なります。生成された内容は必ず自分の目で確認してから使ってください。 &middot; <a href="../">webtools トップへ</a>
+</footer>
+
+<script>
+  const prompts = [
+    {
+      category: '記事作成',
+      title: '記事構成メーカー',
+      body: `あなたはSEOに強いブログ編集者です。
+テーマ:「[ここにジャンルを入れる]」
+読者:このジャンルの初心者
+上記について、以下を出力してください。
+1. 検索されやすいタイトル案を3つ
+2. 記事のH2見出しを5つ
+3. 各見出しで書くべき内容を2〜3行で
+4. 読者が最後に取ってほしい行動(CTA)の案`,
+    },
+    {
+      category: '記事作成',
+      title: '初心者向けリライト',
+      body: `以下の文章を、初心者にも伝わるように、
+専門用語を減らして、具体例を1つ追加して書き直してください。
+
+[ここに自分で書いた文章を貼る]`,
+    },
+    {
+      category: '記事作成',
+      title: 'タイトル案ブレスト(4切り口)',
+      body: `あなたはコピーライターです。
+以下の記事内容から、クリックしたくなるタイトル案を10個、
+異なる切り口(数字訴求・悩み共感・意外性・権威性)で出してください。
+
+[ここに記事の要約を貼る]`,
+    },
+    {
+      category: '仕事効率化',
+      title: '議事録の3項目要約',
+      body: `以下は会議の文字起こしです。
+1. 決定事項
+2. 次のアクションと担当者
+3. 未解決の論点
+の3項目に整理して要約してください。
+
+[ここに文字起こしを貼る]`,
+    },
+    {
+      category: '仕事効率化',
+      title: 'ビジネスメールの丁寧化',
+      body: `以下のメール文を、失礼のない丁寧なビジネス文書に書き直してください。
+一文は短く、結論を先に書いてください。
+
+[ここに下書きを貼る]`,
+    },
+    {
+      category: '仕事効率化',
+      title: 'ブレスト壁打ち相手',
+      body: `あなたは経験豊富な壁打ち相手です。
+私がこれから話すテーマについて、
+賛成/反対の視点や見落としがちな論点を
+質問形式で3つ投げかけてください。
+
+テーマ:[ここにテーマを入れる]`,
+    },
+    {
+      category: 'SNS発信',
+      title: 'X投稿文 3パターン生成',
+      body: `以下の内容を、X(Twitter)投稿用に3パターンで書いてください。
+①共感フック型 ②数字訴求型 ③短文インパクト型
+文字数は各120字以内。
+
+[ここに伝えたい内容を貼る]`,
+    },
+    {
+      category: 'SNS発信',
+      title: 'スレッド(連投)構成案',
+      body: `以下のテーマについて、Xの連投スレッド(5〜7ツイート)の構成案を作ってください。
+1ツイート目は強いフックにしてください。
+
+テーマ:[ここにテーマを入れる]`,
+    },
+    {
+      category: '副業・自己紹介',
+      title: 'プロフィール文 3パターン',
+      body: `以下の経歴・実績をもとに、
+noteやXのプロフィール欄用の自己紹介文を
+120字程度で3パターン作ってください。
+
+[ここに経歴・実績を箇条書きで貼る]`,
+    },
+    {
+      category: '副業・自己紹介',
+      title: '商品・サービス説明文',
+      body: `以下の商品/サービスの特徴を、
+「誰の」「どんな悩みを」「どう解決するか」の型で
+説明文にしてください。
+
+[ここに特徴を箇条書きで貼る]`,
+    },
+    {
+      category: '文章添削',
+      title: '誤字脱字・表記ゆれチェック',
+      body: `以下の文章の誤字脱字・表記ゆれ・不自然な言い回しを指摘し、
+修正版も提示してください。
+
+[ここに文章を貼る]`,
+    },
+    {
+      category: '文章添削',
+      title: '3行要約',
+      body: `以下の文章を、要点を落とさずに3行で要約してください。
+
+[ここに文章を貼る]`,
+    },
+  ];
+
+  const categories = ['すべて', ...new Set(prompts.map(p => p.category))];
+  let activeCategory = 'すべて';
+  let searchTerm = '';
+
+  const chipRowEl = document.getElementById('chipRow');
+  const searchInputEl = document.getElementById('searchInput');
+  const promptListEl = document.getElementById('promptList');
+  const resultCountEl = document.getElementById('resultCount');
+  const noResultsEl = document.getElementById('noResults');
+
+  chipRowEl.innerHTML = categories.map(c => `<button class="chip ${c === activeCategory ? 'active' : ''}" data-cat="${c}">${c}</button>`).join('');
+
+  function render() {
+    const q = searchTerm.trim().toLowerCase();
+    const filtered = prompts.filter(p => {
+      const matchesCat = activeCategory === 'すべて' || p.category === activeCategory;
+      const matchesQuery = !q || p.title.toLowerCase().includes(q) || p.body.toLowerCase().includes(q) || p.category.toLowerCase().includes(q);
+      return matchesCat && matchesQuery;
+    });
+
+    resultCountEl.textContent = `${filtered.length}件のプロンプト`;
+    noResultsEl.style.display = filtered.length === 0 ? 'block' : 'none';
+
+    promptListEl.innerHTML = filtered.map((p, i) => `
+      <div class="prompt-card">
+        <div class="prompt-meta">
+          <span class="prompt-cat">${p.category}</span>
+        </div>
+        <div class="prompt-title">${p.title}</div>
+        <div class="prompt-body">${p.body}</div>
+        <button class="copy-btn" data-idx="${prompts.indexOf(p)}">コピー</button>
+      </div>
+    `).join('');
+
+    promptListEl.querySelectorAll('.copy-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const idx = parseInt(btn.dataset.idx);
+        const text = prompts[idx].body;
+        const showState = (label, ok) => {
+          btn.textContent = label;
+          btn.classList.toggle('copied', ok);
+          setTimeout(() => {
+            btn.textContent = 'コピー';
+            btn.classList.remove('copied');
+          }, 1500);
+        };
+        try {
+          await navigator.clipboard.writeText(text);
+          showState('コピーしました', true);
+        } catch (err) {
+          const textarea = document.createElement('textarea');
+          textarea.value = text;
+          textarea.style.position = 'fixed';
+          textarea.style.opacity = '0';
+          document.body.appendChild(textarea);
+          textarea.select();
+          try {
+            document.execCommand('copy');
+            showState('コピーしました', true);
+          } catch (err2) {
+            showState('コピーできませんでした', false);
+          }
+          document.body.removeChild(textarea);
+        }
+      });
+    });
+  }
+
+  chipRowEl.querySelectorAll('.chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      activeCategory = chip.dataset.cat;
+      chipRowEl.querySelectorAll('.chip').forEach(c => c.classList.toggle('active', c === chip));
+      render();
+    });
+  });
+
+  searchInputEl.addEventListener('input', () => {
+    searchTerm = searchInputEl.value;
+    render();
+  });
+
+  render();
+</script>
+
+</body>
+</html>
