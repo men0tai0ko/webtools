@@ -147,8 +147,10 @@
     position: absolute;
     border: 2px solid var(--accent2);
     box-shadow: 0 0 0 9999px rgba(0,0,0,.6);
-    pointer-events: none;
+    cursor: grab;
+    touch-action: none;
   }
+  .crop-frame.dragging { cursor: grabbing; border-color: var(--accent); }
   .compare-box .size { font-size: 15px; font-weight: 500; }
   .compare-box .dims { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
   .compare-box .savings { font-size: 12px; color: var(--green); margin-top: 6px; }
@@ -558,23 +560,69 @@
     return (imgW / imgH) > ratio ? 'horizontal' : 'vertical';
   }
 
+  // ボタンでのジャンプ、ドラッグでの微調整のどちらでも呼ぶ共通の状態同期(近い値のボタンをactiveにする)
+  function syncAlignButtons() {
+    alignRow.querySelectorAll('button').forEach(b => {
+      const isActive = Math.abs(parseFloat(b.dataset.align) - cropAlign) < 0.02;
+      b.classList.toggle('active', isActive);
+      b.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+    });
+  }
+
   function renderAlignButtons(axis) {
     const options = axis === 'horizontal'
       ? [{ v: 0, l: '左寄せ' }, { v: 0.5, l: '中央' }, { v: 1, l: '右寄せ' }]
       : [{ v: 0, l: '上寄せ' }, { v: 0.5, l: '中央' }, { v: 1, l: '下寄せ' }];
-    alignRow.innerHTML = options.map(o => `<button class="ratio-chip${o.v === cropAlign ? ' active' : ''}" data-align="${o.v}" aria-pressed="${o.v === cropAlign}">${o.l}</button>`).join('');
+    alignRow.innerHTML = options.map(o => `<button class="ratio-chip" data-align="${o.v}" aria-pressed="false">${o.l}</button>`).join('');
     alignRow.querySelectorAll('button').forEach(btn => {
       btn.addEventListener('click', () => {
         cropAlign = parseFloat(btn.dataset.align);
-        alignRow.querySelectorAll('button').forEach(b => {
-          const isActive = b === btn;
-          b.classList.toggle('active', isActive);
-          b.setAttribute('aria-pressed', isActive ? 'true' : 'false');
-        });
+        syncAlignButtons();
         recalc();
       });
     });
+    syncAlignButtons();
   }
+
+  // ─── クロップ枠のドラッグ/タップ操作(マウス・タッチ共通のPointer Events) ───
+  let dragState = null;
+
+  cropFrame.addEventListener('pointerdown', (e) => {
+    if (!cropRatio || !originalImage || !originalPreview.clientWidth) return;
+    const axis = getCropAxis(originalWidth, originalHeight, cropRatio);
+    const scale = originalPreview.clientWidth / originalWidth;
+    const { sw, sh } = getCropRect(originalWidth, originalHeight, cropRatio, cropAlign);
+    const maxOffset = axis === 'horizontal' ? (originalWidth - sw) * scale : (originalHeight - sh) * scale;
+    dragState = {
+      axis,
+      maxOffset,
+      startClientPos: axis === 'horizontal' ? e.clientX : e.clientY,
+      startAlign: cropAlign,
+    };
+    cropFrame.setPointerCapture(e.pointerId);
+    cropFrame.classList.add('dragging');
+    e.preventDefault();
+  });
+
+  cropFrame.addEventListener('pointermove', (e) => {
+    if (!dragState) return;
+    const currentPos = dragState.axis === 'horizontal' ? e.clientX : e.clientY;
+    const delta = currentPos - dragState.startClientPos;
+    const deltaAlign = dragState.maxOffset > 0 ? delta / dragState.maxOffset : 0;
+    cropAlign = Math.min(1, Math.max(0, dragState.startAlign + deltaAlign));
+    updateCropOverlay();
+    syncAlignButtons();
+    scheduleRecalc();
+    e.preventDefault();
+  });
+
+  function endDrag() {
+    if (!dragState) return;
+    dragState = null;
+    cropFrame.classList.remove('dragging');
+  }
+  cropFrame.addEventListener('pointerup', endDrag);
+  cropFrame.addEventListener('pointercancel', endDrag);
 
   function updateCropOverlay() {
     if (!cropRatio || !originalImage || !originalPreview.clientWidth) {
@@ -743,7 +791,7 @@
         cropRatio = preset.value;
         cropAlign = 0.5;
         activeSlug = preset.slug;
-        ratioHint.textContent = `${preset.label} で中央クロップします(元画像プレビューの外側の暗い部分が切り取られます)`;
+        ratioHint.textContent = `${preset.label} で中央クロップします。明るい枠を直接ドラッグ(スマホはタップ&スワイプ)しても位置を調整できます。`;
         keepAspect.disabled = true;
         keepAspectHint.textContent = 'プリセット比率を選択中は、その比率が優先されます。';
         alignField.style.display = 'block';
