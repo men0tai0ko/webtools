@@ -401,7 +401,7 @@
     automation: {
       title: 'AI効率化ハッカー型',
       desc: '仕組みや手順を考えるのが得意で、面倒な作業を自動化・効率化するのが好きなタイプです。',
-      next: '業務効率化ツールの開発や、AI活用のコンサル・代行のような形が向いています。',
+      next: '業務効率化ツールの開発や、AI活用のコンサル・代行のような形が向いています。試しに、この診断ツールと同じ作者が作った <a href="../ai-cost-calculator/">AIコスト計算機</a> や <a href="../salary-calculator/">給与手取り計算機</a> のようなミニツールも覗いてみてください。',
       share: '私はAI効率化ハッカー型でした。仕組み化・自動化で効率を上げるのが向いているタイプみたい。',
     },
   };
@@ -458,7 +458,7 @@
 
     resultTitleEl.textContent = r.title;
     resultDescEl.textContent = r.desc;
-    resultNextEl.textContent = r.next;
+    resultNextEl.innerHTML = r.next;
     ctaLinkEl.href = NOTE_ARTICLE_URL;
 
     const typeLabels = { writer: 'ライター', sns: 'キュレーター', visual: 'クリエイター', automation: '効率化' };
