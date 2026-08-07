@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>フリーランス消費税・請求書計算機 | インボイス対応</title>
+<meta name="description" content="フリーランス・副業向けの税込税抜計算機と、インボイス登録した場合の消費税納税額(2割特例・簡易課税)を概算比較できるシミュレーター。">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700;900&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #0e0e10;
+    --surface: #17171a;
+    --surface2: #1f1f24;
+    --border: #2a2a32;
+    --accent: #ff6b35;
+    --accent2: #ffd166;
+    --text: #e8e6e1;
+    --text-muted: #7a7880;
+    --green: #06d6a0;
+    --radius: 8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Mono', monospace;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  a { color: var(--accent2); }
+
+  header {
+    padding: 20px 28px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--surface);
+    flex-wrap: wrap;
+  }
+
+  .logo {
+    font-family: 'Noto Serif JP', serif;
+    font-weight: 900;
+    font-size: 22px;
+    letter-spacing: -0.5px;
+  }
+  .logo span { color: var(--accent); }
+
+  .badge {
+    font-size: 10px;
+    background: var(--accent);
+    color: #000;
+    padding: 2px 8px;
+    border-radius: 100px;
+    font-weight: 500;
+    letter-spacing: 1px;
+  }
+
+  header p {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-left: auto;
+  }
+
+  .wrap {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 28px 20px 60px;
+  }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px;
+    margin-bottom: 20px;
+  }
+
+  .panel h2 {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 17px;
+    margin-bottom: 6px;
+  }
+  .panel .sub {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 18px;
+  }
+
+  .label {
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    display: block;
+  }
+
+  .field { margin-bottom: 16px; }
+  .field:last-child { margin-bottom: 0; }
+
+  .field input[type="number"], .field select {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 15px;
+    padding: 10px 12px;
+    border-radius: var(--radius);
+    outline: none;
+  }
+  .field input:focus, .field select:focus { border-color: var(--accent); }
+
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 520px) { .row2 { grid-template-columns: 1fr; } }
+
+  .toggle-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .toggle-row button {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    padding: 10px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: border-color .2s, color .2s, background .2s;
+  }
+  .toggle-row button.active { border-color: var(--accent); background: #241a12; color: var(--accent2); }
+
+  .hint {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 6px;
+    line-height: 1.6;
+  }
+
+  /* ─── RESULTS ─── */
+  .result-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 18px;
+  }
+  @media (max-width: 520px) { .result-grid { grid-template-columns: 1fr; } }
+  .result-stat {
+    background: var(--surface2);
+    border-radius: var(--radius);
+    padding: 12px;
+    text-align: center;
+  }
+  .result-stat .n { font-size: 18px; font-weight: 500; color: var(--accent2); }
+  .result-stat .l { font-size: 10px; color: var(--text-muted); margin-top: 4px; }
+
+  .notice {
+    background: #241a12;
+    border: 1px solid #4a3218;
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    font-size: 12px;
+    color: var(--accent2);
+    margin-bottom: 18px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-top: 16px;
+  }
+  thead th {
+    text-align: left;
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  thead th.num, td.num { text-align: right; }
+  tbody tr { border-bottom: 1px solid var(--border); }
+  tbody tr.best { background: #10231d; }
+  tbody tr.best td { color: var(--green); font-weight: 500; }
+  td { padding: 10px; }
+
+  .ad-slot {
+    display: none;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 11px;
+    letter-spacing: 1px;
+    margin: 28px 0;
+  }
+
+  .explainer { margin-top: 40px; }
+  .explainer h2 {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 18px;
+    margin: 32px 0 12px;
+    color: var(--accent2);
+  }
+  .explainer h2:first-child { margin-top: 0; }
+  .explainer p, .explainer li { font-size: 13px; color: var(--text-muted); margin-bottom: 10px; }
+  .explainer ul { padding-left: 20px; }
+
+  footer {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-muted);
+    padding: 24px;
+    border-top: 1px solid var(--border);
+  }
+  footer a { color: var(--text-muted); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">フリーランス<span>消費税</span>計算機</div>
+  <span class="badge">BETA</span>
+  <p>請求書の税込・税抜計算とインボイス納税額シミュレーター</p>
+</header>
+
+<div class="wrap">
+
+  <!-- SECTION 1: 税込税抜変換 -->
+  <div class="panel">
+    <h2>請求書の税込・税抜 計算</h2>
+    <div class="sub">消費税率10%で計算します。</div>
+
+    <div class="toggle-row" id="modeToggle">
+      <button class="active" data-mode="excl">税抜金額から計算</button>
+      <button data-mode="incl">税込金額から計算</button>
+    </div>
+
+    <div class="field">
+      <label class="label" id="amountLabel" for="amountInput">税抜金額(円)</label>
+      <input type="number" id="amountInput" value="100000" min="0">
+    </div>
+
+    <div class="field">
+      <label class="label" for="roundingSelect">消費税額の端数処理</label>
+      <select id="roundingSelect">
+        <option value="floor">切り捨て</option>
+        <option value="round">四捨五入</option>
+        <option value="ceil">切り上げ</option>
+      </select>
+    </div>
+
+    <div class="result-grid">
+      <div class="result-stat"><div class="n" id="exclResult">¥0</div><div class="l">税抜金額</div></div>
+      <div class="result-stat"><div class="n" id="taxResult">¥0</div><div class="l">消費税額(10%)</div></div>
+      <div class="result-stat"><div class="n" id="inclResult">¥0</div><div class="l">税込金額</div></div>
+    </div>
+  </div>
+
+  <!-- SECTION 2: インボイスシミュレーター -->
+  <div class="panel">
+    <h2>インボイス登録、納税額はどれくらい?</h2>
+    <div class="sub">インボイス発行事業者として登録した場合の、消費税納税額を概算比較します。</div>
+
+    <div class="notice">
+      2割特例は2026年9月30日までの課税期間に限り使える経過措置です。それ以降は簡易課税(要届出)か一般課税での計算になります。
+    </div>
+
+    <div class="row2">
+      <div class="field">
+        <label class="label" for="revenueInput">年間の課税売上高(税抜・万円)</label>
+        <input type="number" id="revenueInput" value="300" min="0">
+      </div>
+      <div class="field">
+        <label class="label" for="businessType">簡易課税の事業区分</label>
+        <select id="businessType">
+          <option value="1">第1種(卸売業) みなし仕入率90%</option>
+          <option value="2">第2種(小売業) みなし仕入率80%</option>
+          <option value="3">第3種(製造業等) みなし仕入率70%</option>
+          <option value="4">第4種(飲食店等・その他) みなし仕入率60%</option>
+          <option value="5" selected>第5種(サービス業・情報通信業等) みなし仕入率50%</option>
+          <option value="6">第6種(不動産業) みなし仕入率40%</option>
+        </select>
+        <div class="hint">ライター・デザイナー・コンサル等の役務提供は多くの場合サービス業(第5種)に該当しますが、業態によって異なります。</div>
+      </div>
+    </div>
+
+    <table>
+      <thead><tr><th>方式</th><th class="num">概算納税額(年間)</th><th class="num">メモ</th></tr></thead>
+      <tbody id="taxTableBody"></tbody>
+    </table>
+
+    <div class="hint" style="margin-top:14px;">
+      前々年の課税売上高が1,000万円以下であれば、インボイス登録をしなければ消費税の納税義務は免除されます(免税事業者)。取引先の多くが課税事業者で、仕入税額控除を重視される場合はインボイス登録が必要になることがあります。登録するかどうかは、免税のままでいた場合の値引き交渉リスクと、登録した場合の事務負担・納税額を比較して判断してください。
+    </div>
+  </div>
+
+  <div class="ad-slot">広告枠(Google AdSense設置予定)</div>
+
+  <div class="explainer">
+    <h2>2割特例とは?</h2>
+    <p>インボイス制度導入(2023年10月)にあわせて、免税事業者からインボイス発行事業者になった小規模事業者向けに設けられた経過措置です。売上にかかる消費税額の2割だけを納めればよい、というシンプルな計算方法で、事前の届出も不要です。ただし2026年9月30日の属する課税期間までの時限措置です。</p>
+
+    <h2>簡易課税制度とは?</h2>
+    <p>売上高から仕入税額控除額を「みなし仕入率」で概算する制度です。実際の経費を集計する必要がないぶん事務負担が軽くなりますが、事前に「消費税簡易課税制度選択届出書」の提出が必要で、原則2年間は継続適用されます。</p>
+
+    <h2>本当に登録すべき?判断のポイント</h2>
+    <ul>
+      <li>主な取引先が一般消費者や免税事業者なら、インボイスの有無は影響しにくい</li>
+      <li>主な取引先が課税事業者(企業など)で、仕入税額控除を求められる場合は、登録しないと取引条件に影響することがある</li>
+      <li>迷ったら、税理士や国税庁の「インボイス制度特設サイト」に相談するのが確実です</li>
+    </ul>
+
+    <h2>あわせて使いたいツール</h2>
+    <p>本業の手取りも含めて収支を把握したい方は<a href="../salary-calculator/">給与手取り計算機</a>、AI副業に興味がある方は<a href="../side-hustle-quiz/">AI副業タイプ診断</a>もどうぞ。</p>
+  </div>
+</div>
+
+<footer>
+  このツールの計算結果は概算・簡易シミュレーションです。実際の税額は個別の事情により異なるため、確定申告や登録の判断は税理士・税務署にご確認ください。 &middot; <a href="../">webtools トップへ</a>
+</footer>
+
+<script>
+  const TAX_RATE = 0.10;
+  const shokibo = { 1: 0.90, 2: 0.80, 3: 0.70, 4: 0.60, 5: 0.50, 6: 0.40 };
+  const shokibNames = { 1: '第1種', 2: '第2種', 3: '第3種', 4: '第4種', 5: '第5種', 6: '第6種' };
+
+  let mode = 'excl';
+  const modeToggle = document.getElementById('modeToggle');
+  const amountLabel = document.getElementById('amountLabel');
+  const amountInput = document.getElementById('amountInput');
+  const roundingSelect = document.getElementById('roundingSelect');
+  const exclResultEl = document.getElementById('exclResult');
+  const taxResultEl = document.getElementById('taxResult');
+  const inclResultEl = document.getElementById('inclResult');
+
+  function applyRounding(n, mode) {
+    if (mode === 'floor') return Math.floor(n);
+    if (mode === 'ceil') return Math.ceil(n);
+    return Math.round(n);
+  }
+
+  function fmtYen(n) {
+    return '¥' + Math.round(n).toLocaleString();
+  }
+
+  function calcInvoice() {
+    const amount = parseFloat(amountInput.value) || 0;
+    const rMode = roundingSelect.value;
+    let excl, tax, incl;
+    if (mode === 'excl') {
+      excl = amount;
+      tax = applyRounding(excl * TAX_RATE, rMode);
+      incl = excl + tax;
+    } else {
+      incl = amount;
+      excl = applyRounding(incl / (1 + TAX_RATE), rMode);
+      tax = incl - excl;
+    }
+    exclResultEl.textContent = fmtYen(excl);
+    taxResultEl.textContent = fmtYen(tax);
+    inclResultEl.textContent = fmtYen(incl);
+  }
+
+  modeToggle.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      mode = btn.dataset.mode;
+      modeToggle.querySelectorAll('button').forEach(b => b.classList.toggle('active', b === btn));
+      amountLabel.textContent = mode === 'excl' ? '税抜金額(円)' : '税込金額(円)';
+      calcInvoice();
+    });
+  });
+  amountInput.addEventListener('input', calcInvoice);
+  roundingSelect.addEventListener('input', calcInvoice);
+
+  // ─── インボイスシミュレーター ───
+  const revenueInput = document.getElementById('revenueInput');
+  const businessType = document.getElementById('businessType');
+  const taxTableBody = document.getElementById('taxTableBody');
+
+  function calcSimulator() {
+    const revenue = Math.max(0, (parseFloat(revenueInput.value) || 0) * 10000);
+    const salesTax = revenue * TAX_RATE;
+    const type = businessType.value;
+    const deemedRate = shokibo[type];
+
+    const twoPercentTax = salesTax * 0.2;
+    const simplifiedTax = salesTax * (1 - deemedRate);
+    const noRegistrationTax = 0;
+
+    const rows = [
+      { label: '免税事業者のまま(登録しない)', tax: noRegistrationTax, note: '納税義務なし' },
+      { label: '2割特例(〜2026年9月30日の課税期間)', tax: twoPercentTax, note: '届出不要・売上税額の20%' },
+      { label: `簡易課税(${shokibNames[type]}・みなし仕入率${Math.round(deemedRate * 100)}%)`, tax: simplifiedTax, note: '事前届出が必要' },
+    ];
+
+    const registeredRows = rows.filter(r => r.label !== '免税事業者のまま(登録しない)');
+    const minTax = Math.min(...registeredRows.map(r => r.tax));
+
+    taxTableBody.innerHTML = rows.map(r => `
+      <tr class="${r.tax === minTax && r.label !== '免税事業者のまま(登録しない)' ? 'best' : ''}">
+        <td>${r.label}</td>
+        <td class="num">${fmtYen(r.tax)}</td>
+        <td class="num" style="color:var(--text-muted); font-size:11px;">${r.note}</td>
+      </tr>
+    `).join('');
+  }
+
+  revenueInput.addEventListener('input', calcSimulator);
+  businessType.addEventListener('input', calcSimulator);
+
+  calcInvoice();
+  calcSimulator();
+</script>
+
+</body>
+</html>
