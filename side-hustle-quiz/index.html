@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI副業タイプ診断 | あなたに向いているAI活用副業がわかる</title>
+<meta name="description" content="5つの質問に答えるだけで、あなたに向いているAI活用副業のタイプを診断。AIライター型・AIキュレーター型・AIクリエイター型・AI効率化ハッカー型の4タイプから、次の一歩を提案します。">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700;900&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #0e0e10;
+    --surface: #17171a;
+    --surface2: #1f1f24;
+    --border: #2a2a32;
+    --accent: #ff6b35;
+    --accent2: #ffd166;
+    --text: #e8e6e1;
+    --text-muted: #7a7880;
+    --green: #06d6a0;
+    --radius: 8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Mono', monospace;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  a { color: var(--accent2); }
+
+  header {
+    padding: 20px 28px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--surface);
+    flex-wrap: wrap;
+  }
+
+  .logo {
+    font-family: 'Noto Serif JP', serif;
+    font-weight: 900;
+    font-size: 22px;
+    letter-spacing: -0.5px;
+  }
+  .logo span { color: var(--accent); }
+
+  .badge {
+    font-size: 10px;
+    background: var(--accent);
+    color: #000;
+    padding: 2px 8px;
+    border-radius: 100px;
+    font-weight: 500;
+    letter-spacing: 1px;
+  }
+
+  header p {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-left: auto;
+  }
+
+  .wrap {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 32px 20px 60px;
+  }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px 24px;
+  }
+
+  /* ─── INTRO ─── */
+  #introScreen h1 {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 22px;
+    margin-bottom: 14px;
+    line-height: 1.5;
+  }
+  #introScreen p {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 22px;
+  }
+
+  .btn-primary {
+    display: inline-block;
+    width: 100%;
+    background: var(--accent);
+    color: #000;
+    border: none;
+    font-family: 'DM Mono', monospace;
+    font-weight: 500;
+    font-size: 14px;
+    padding: 14px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    text-align: center;
+    letter-spacing: 0.5px;
+    transition: opacity .2s, transform .1s;
+  }
+  .btn-primary:hover { opacity: .9; }
+  .btn-primary:active { transform: scale(.98); }
+
+  .btn-secondary {
+    display: inline-block;
+    width: 100%;
+    background: none;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    padding: 12px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    text-align: center;
+    margin-top: 10px;
+    transition: border-color .2s, color .2s;
+  }
+  .btn-secondary:hover { border-color: var(--accent2); color: var(--accent2); }
+
+  /* ─── QUIZ ─── */
+  .progress-track {
+    height: 4px;
+    background: var(--surface2);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    transition: width .3s ease;
+  }
+  .progress-label {
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  #questionText {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 18px;
+    margin-bottom: 20px;
+    line-height: 1.6;
+  }
+
+  .option-card {
+    display: block;
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    text-align: left;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    cursor: pointer;
+    transition: border-color .2s, background .2s;
+  }
+  .option-card:hover { border-color: var(--accent2); background: #201f16; }
+
+  /* ─── RESULT ─── */
+  #resultScreen { display: none; text-align: center; }
+  .result-badge {
+    display: inline-block;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .result-title {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 26px;
+    font-weight: 900;
+    color: var(--accent2);
+    margin-bottom: 16px;
+  }
+  .result-desc {
+    font-size: 13px;
+    color: var(--text);
+    margin-bottom: 18px;
+    text-align: left;
+  }
+  .result-next {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    text-align: left;
+    margin-bottom: 22px;
+  }
+  .result-next .label {
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--green);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .result-next p { font-size: 13px; color: var(--text-muted); }
+
+  .score-bars { margin-bottom: 22px; text-align: left; }
+  .score-row {
+    display: grid;
+    grid-template-columns: 110px 1fr 30px;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+    font-size: 11px;
+  }
+  .score-track { background: var(--surface2); border-radius: 4px; height: 8px; overflow: hidden; }
+  .score-fill { height: 100%; background: var(--border); }
+  .score-row.top .score-fill { background: var(--accent); }
+  .score-row.top { color: var(--accent2); }
+
+  /* ─── AD / EXPLAINER ─── */
+  .ad-slot {
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 11px;
+    letter-spacing: 1px;
+    margin: 28px 0;
+  }
+
+  .explainer h2 {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 18px;
+    margin: 32px 0 12px;
+    color: var(--accent2);
+  }
+  .explainer h2:first-child { margin-top: 0; }
+  .explainer p, .explainer li {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+  }
+  .explainer ul { padding-left: 20px; }
+
+  footer {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-muted);
+    padding: 24px;
+    border-top: 1px solid var(--border);
+  }
+  footer a { color: var(--text-muted); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">AI<span>副業</span>タイプ診断</div>
+  <span class="badge">BETA</span>
+  <p>5つの質問であなたに向いている副業タイプがわかる</p>
+</header>
+
+<div class="wrap">
+  <div class="panel">
+
+    <!-- INTRO -->
+    <div id="introScreen">
+      <h1>あなたに向いているAI活用副業は、どのタイプ?</h1>
+      <p>全5問、所要時間は1分ほどです。回答結果はどこにも送信されず、この画面の中だけで完結します。</p>
+      <button class="btn-primary" id="startBtn">診断をはじめる</button>
+    </div>
+
+    <!-- QUIZ -->
+    <div id="quizScreen" style="display:none;">
+      <div class="progress-label"><span id="qIndex">1</span> / <span id="qTotal">5</span></div>
+      <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:20%"></div></div>
+      <div id="questionText"></div>
+      <div id="optionsList"></div>
+    </div>
+
+    <!-- RESULT -->
+    <div id="resultScreen">
+      <div class="result-badge">診断結果</div>
+      <div class="result-title" id="resultTitle"></div>
+      <div class="result-desc" id="resultDesc"></div>
+
+      <div class="result-next">
+        <div class="label">次の一歩</div>
+        <p id="resultNext"></p>
+      </div>
+
+      <div class="score-bars" id="scoreBars"></div>
+
+      <a class="btn-primary" id="ctaLink" href="#" target="_blank" rel="noopener" style="text-decoration:none; display:block;">AI副業のはじめ方を詳しく見る</a>
+      <button class="btn-secondary" id="shareBtn">診断結果をXでシェア</button>
+      <button class="btn-secondary" id="retryBtn">もう一度診断する</button>
+    </div>
+
+  </div>
+
+  <div class="ad-slot">広告枠(Google AdSense設置予定)</div>
+
+  <div class="explainer">
+    <h2>4つのAI副業タイプについて</h2>
+    <ul>
+      <li><strong>AIライター型</strong> — 知識や経験をAIの力を借りてじっくり文章にまとめるのが得意。note等での記事販売と相性が良いタイプ。</li>
+      <li><strong>AIキュレーター型</strong> — トレンドを素早くキャッチし、短い言葉で発信するのが得意。SNS発信からの流入作りが向いているタイプ。</li>
+      <li><strong>AIクリエイター型</strong> — 画像やデザインなど、ビジュアル表現が得意。AI画像生成ツールとの相性が良いタイプ。</li>
+      <li><strong>AI効率化ハッカー型</strong> — 仕組みや手順を考えるのが好きで、自動化・効率化が得意。ツール開発や業務代行が向いているタイプ。</li>
+    </ul>
+    <p>どのタイプであっても、AIを"相棒"にすることで、一人では時間がかかりすぎる作業を大幅に時短できます。診断結果は目安としてご活用ください。</p>
+  </div>
+</div>
+
+<footer>
+  診断結果は簡易的な目安です。実際の適性は行動しながら見つかることも多いので、気になったタイプから気軽に試してみてください。 &middot; <a href="../">webtools トップへ</a>
+</footer>
+
+<script>
+  const NOTE_PROFILE_URL = 'https://note.com/matsu_yasuko634';
+
+  const questions = [
+    {
+      text: 'Q1. 一番使い慣れている(得意な)アウトプットは?',
+      options: [
+        { label: '文章を書くこと', type: 'writer' },
+        { label: '短い言葉で伝えること(SNS投稿など)', type: 'sns' },
+        { label: '画像・デザインを作ること', type: 'visual' },
+        { label: '手順化・仕組み化を考えること', type: 'automation' },
+      ],
+    },
+    {
+      text: 'Q2. AIに一番期待することは?',
+      options: [
+        { label: '文章の構成や下書きを手伝ってほしい', type: 'writer' },
+        { label: '短くパッと拡散できる文を作りたい', type: 'sns' },
+        { label: 'イメージ通りの画像を素早く作りたい', type: 'visual' },
+        { label: '面倒な作業を自動化・時短したい', type: 'automation' },
+      ],
+    },
+    {
+      text: 'Q3. 収益化までのイメージに近いのは?',
+      options: [
+        { label: 'じっくり記事を積み上げて販売する', type: 'writer' },
+        { label: 'フォロワーを増やして発信力で稼ぐ', type: 'sns' },
+        { label: '素材やデザインを制作・販売する', type: 'visual' },
+        { label: '他の人の作業を代行・サポートする', type: 'automation' },
+      ],
+    },
+    {
+      text: 'Q4. 得意、または好きなのはどっち寄り?',
+      options: [
+        { label: '誰かの疑問に丁寧に答える文章を書くこと', type: 'writer' },
+        { label: 'トレンドに素早く反応すること', type: 'sns' },
+        { label: '見た目やセンスにこだわること', type: 'visual' },
+        { label: 'ルールや仕組みを整理すること', type: 'automation' },
+      ],
+    },
+    {
+      text: 'Q5. AIツールを使っていて、つい長く触ってしまうのは?',
+      options: [
+        { label: 'ChatGPT / Claudeとの文章のやり取り', type: 'writer' },
+        { label: 'トレンド調査・要約', type: 'sns' },
+        { label: '画像生成AI', type: 'visual' },
+        { label: '自動化・プロンプト設計', type: 'automation' },
+      ],
+    },
+  ];
+
+  const resultData = {
+    writer: {
+      title: 'AIライター型',
+      desc: '自分の知識や経験を、AIの力を借りてじっくり文章にまとめるのが向いているタイプです。読者の悩みに丁寧に向き合う記事が書けます。',
+      next: 'noteのような媒体で、無料記事で信頼を積み上げつつ、ノウハウ系の記事だけ有料販売するところから始めるのが一番相性の良いスタート方法です。',
+      share: '私はAIライター型でした。文章でじっくり価値を届けるのが向いているタイプみたい。',
+    },
+    sns: {
+      title: 'AIキュレーター型',
+      desc: 'トレンドを素早くキャッチし、短い言葉で発信するのが得意なタイプです。X(Twitter)やThreadsでの発信と相性が良いです。',
+      next: '短文発信で認知を広げつつ、興味を持ってくれた人をより深い記事や商品に誘導する流れを作るのがおすすめです。',
+      share: '私はAIキュレーター型でした。短文発信でトレンドを届けるのが向いているタイプみたい。',
+    },
+    visual: {
+      title: 'AIクリエイター型',
+      desc: '画像やデザインなど、ビジュアルで表現するのが得意なタイプです。AI画像生成ツールとの相性が抜群です。',
+      next: 'アイキャッチ画像やデザイン素材の制作・販売から副業を始めるのがおすすめです。',
+      share: '私はAIクリエイター型でした。AI画像生成で表現するのが向いているタイプみたい。',
+    },
+    automation: {
+      title: 'AI効率化ハッカー型',
+      desc: '仕組みや手順を考えるのが得意で、面倒な作業を自動化・効率化するのが好きなタイプです。',
+      next: '業務効率化ツールの開発や、AI活用のコンサル・代行のような形が向いています。',
+      share: '私はAI効率化ハッカー型でした。仕組み化・自動化で効率を上げるのが向いているタイプみたい。',
+    },
+  };
+
+  const scores = { writer: 0, sns: 0, visual: 0, automation: 0 };
+  let currentQ = 0;
+
+  const introScreen = document.getElementById('introScreen');
+  const quizScreen = document.getElementById('quizScreen');
+  const resultScreen = document.getElementById('resultScreen');
+  const startBtn = document.getElementById('startBtn');
+  const qIndexEl = document.getElementById('qIndex');
+  const qTotalEl = document.getElementById('qTotal');
+  const progressFillEl = document.getElementById('progressFill');
+  const questionTextEl = document.getElementById('questionText');
+  const optionsListEl = document.getElementById('optionsList');
+  const resultTitleEl = document.getElementById('resultTitle');
+  const resultDescEl = document.getElementById('resultDesc');
+  const resultNextEl = document.getElementById('resultNext');
+  const scoreBarsEl = document.getElementById('scoreBars');
+  const ctaLinkEl = document.getElementById('ctaLink');
+  const shareBtn = document.getElementById('shareBtn');
+  const retryBtn = document.getElementById('retryBtn');
+
+  qTotalEl.textContent = questions.length;
+
+  function renderQuestion() {
+    const q = questions[currentQ];
+    qIndexEl.textContent = currentQ + 1;
+    progressFillEl.style.width = ((currentQ + 1) / questions.length * 100) + '%';
+    questionTextEl.textContent = q.text;
+    optionsListEl.innerHTML = q.options.map((opt, i) => `
+      <button class="option-card" data-type="${opt.type}">${opt.label}</button>
+    `).join('');
+    optionsListEl.querySelectorAll('.option-card').forEach(btn => {
+      btn.addEventListener('click', () => {
+        scores[btn.dataset.type]++;
+        currentQ++;
+        if (currentQ < questions.length) {
+          renderQuestion();
+        } else {
+          showResult();
+        }
+      });
+    });
+  }
+
+  function showResult() {
+    quizScreen.style.display = 'none';
+    resultScreen.style.display = 'block';
+
+    const topType = Object.keys(scores).reduce((a, b) => scores[a] >= scores[b] ? a : b);
+    const r = resultData[topType];
+
+    resultTitleEl.textContent = r.title;
+    resultDescEl.textContent = r.desc;
+    resultNextEl.textContent = r.next;
+    ctaLinkEl.href = NOTE_PROFILE_URL;
+
+    const typeLabels = { writer: 'ライター', sns: 'キュレーター', visual: 'クリエイター', automation: '効率化' };
+    const maxScore = questions.length;
+    scoreBarsEl.innerHTML = Object.keys(scores).map(key => {
+      const pct = (scores[key] / maxScore) * 100;
+      const isTop = key === topType;
+      return `
+        <div class="score-row ${isTop ? 'top' : ''}">
+          <div>${typeLabels[key]}型</div>
+          <div class="score-track"><div class="score-fill" style="width:${pct}%"></div></div>
+          <div>${scores[key]}</div>
+        </div>
+      `;
+    }).join('');
+
+    shareBtn.onclick = () => {
+      const text = r.share + '\n\n#AI副業タイプ診断 #AI活用';
+      const url = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(text) + '&url=' + encodeURIComponent(location.href);
+      window.open(url, '_blank', 'noopener');
+    };
+  }
+
+  startBtn.addEventListener('click', () => {
+    introScreen.style.display = 'none';
+    quizScreen.style.display = 'block';
+    renderQuestion();
+  });
+
+  retryBtn.addEventListener('click', () => {
+    Object.keys(scores).forEach(k => scores[k] = 0);
+    currentQ = 0;
+    resultScreen.style.display = 'none';
+    introScreen.style.display = 'block';
+  });
+</script>
+
+</body>
+</html>
