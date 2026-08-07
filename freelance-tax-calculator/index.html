@@ -407,11 +407,12 @@
       { label: `簡易課税(${shokibNames[type]}・みなし仕入率${Math.round(deemedRate * 100)}%)`, tax: simplifiedTax, note: '事前届出が必要' },
     ];
 
+    // 表示は円単位に丸めるため、同額判定(best表示)も丸めた値で比較する(浮動小数点誤差で見た目同額なのに片方だけ強調されるのを防ぐ)
     const registeredRows = rows.filter(r => r.label !== '免税事業者のまま(登録しない)');
-    const minTax = Math.min(...registeredRows.map(r => r.tax));
+    const minTax = Math.min(...registeredRows.map(r => Math.round(r.tax)));
 
     taxTableBody.innerHTML = rows.map(r => `
-      <tr class="${r.tax === minTax && r.label !== '免税事業者のまま(登録しない)' ? 'best' : ''}">
+      <tr class="${Math.round(r.tax) === minTax && r.label !== '免税事業者のまま(登録しない)' ? 'best' : ''}">
         <td>${r.label}</td>
         <td class="num">${fmtYen(r.tax)}</td>
         <td class="num" style="color:var(--text-muted); font-size:11px;">${r.note}</td>
