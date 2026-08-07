@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIコスト計算機 | Claude・GPT・Geminiのトークン料金比較</title>
+<meta name="description" content="Claude・ChatGPT(GPT)・Geminiなど主要AIモデルのAPI料金をトークン数から概算計算。1回あたり・月間の利用コストをモデル別に比較できます。">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700;900&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #0e0e10;
+    --surface: #17171a;
+    --surface2: #1f1f24;
+    --border: #2a2a32;
+    --accent: #ff6b35;
+    --accent2: #ffd166;
+    --text: #e8e6e1;
+    --text-muted: #7a7880;
+    --green: #06d6a0;
+    --red: #ff5c72;
+    --radius: 8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Mono', monospace;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  a { color: var(--accent2); }
+
+  /* ─── HEADER ─── */
+  header {
+    padding: 20px 28px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--surface);
+    flex-wrap: wrap;
+  }
+
+  .logo {
+    font-family: 'Noto Serif JP', serif;
+    font-weight: 900;
+    font-size: 22px;
+    letter-spacing: -0.5px;
+  }
+  .logo span { color: var(--accent); }
+
+  .badge {
+    font-size: 10px;
+    background: var(--accent);
+    color: #000;
+    padding: 2px 8px;
+    border-radius: 100px;
+    font-weight: 500;
+    letter-spacing: 1px;
+  }
+
+  header p {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-left: auto;
+  }
+
+  /* ─── LAYOUT ─── */
+  .wrap {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 28px 20px 60px;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+
+  @media (max-width: 860px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+  }
+
+  .label {
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    display: block;
+  }
+
+  textarea#promptText {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    padding: 12px;
+    border-radius: var(--radius);
+    resize: vertical;
+    height: 140px;
+    line-height: 1.6;
+    outline: none;
+    transition: border-color .2s;
+  }
+  textarea#promptText:focus { border-color: var(--accent); }
+  textarea#promptText::placeholder { color: var(--text-muted); }
+
+  .token-readout {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--accent2);
+  }
+
+  .field { margin-bottom: 18px; }
+
+  .field input[type="number"] {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    padding: 10px 12px;
+    border-radius: var(--radius);
+    outline: none;
+  }
+  .field input[type="number"]:focus { border-color: var(--accent); }
+
+  .hint {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 6px;
+    line-height: 1.6;
+  }
+
+  /* ─── RESULTS ─── */
+  .section-label {
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+  }
+
+  table {
+    width: 100%;
+    min-width: 520px;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  td, thead th { white-space: nowrap; }
+  td.num, thead th.num { white-space: nowrap; }
+
+  thead th {
+    text-align: left;
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  thead th.num, td.num { text-align: right; }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background .15s;
+  }
+  tbody tr:hover { background: var(--surface2); }
+  tbody tr.cheapest { background: #10231d; }
+
+  td { padding: 10px; vertical-align: middle; }
+
+  .model-name {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 14px;
+  }
+  .provider {
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 0.5px;
+  }
+
+  .price-input {
+    width: 64px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    padding: 5px 6px;
+    border-radius: 4px;
+    text-align: right;
+    outline: none;
+  }
+  .price-input:focus { border-color: var(--accent); color: var(--text); }
+
+  .cost-value {
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .cheapest .cost-value { color: var(--green); }
+
+  .cheapest-badge {
+    font-size: 9px;
+    background: var(--green);
+    color: #000;
+    padding: 2px 6px;
+    border-radius: 100px;
+    margin-left: 6px;
+    letter-spacing: 0.5px;
+    vertical-align: middle;
+  }
+
+  .table-scroll { overflow-x: auto; }
+
+  /* ─── BAR CHART ─── */
+  .bar-row {
+    display: grid;
+    grid-template-columns: 150px 1fr 90px;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+  .bar-row .bar-label {
+    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .bar-track {
+    background: var(--surface2);
+    border-radius: 4px;
+    height: 18px;
+    overflow: hidden;
+  }
+  .bar-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 4px;
+    transition: width .25s ease;
+  }
+  .bar-row.cheapest .bar-fill { background: var(--green); }
+  .bar-row .bar-value {
+    font-size: 12px;
+    text-align: right;
+    color: var(--text-muted);
+  }
+  .bar-row.cheapest .bar-value { color: var(--green); }
+  @media (max-width: 560px) {
+    .bar-row { grid-template-columns: 100px 1fr 70px; }
+  }
+
+  .edit-toggle {
+    font-size: 10px;
+    color: var(--text-muted);
+    background: none;
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    border-radius: 100px;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+  }
+  .edit-toggle:hover { border-color: var(--accent2); color: var(--accent2); }
+
+  .results-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  /* ─── AD SLOTS ─── */
+  .ad-slot {
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 11px;
+    letter-spacing: 1px;
+    margin: 28px 0;
+  }
+
+  /* ─── EXPLAINER ─── */
+  .explainer {
+    margin-top: 40px;
+  }
+  .explainer h2 {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 18px;
+    margin: 32px 0 12px;
+    color: var(--accent2);
+  }
+  .explainer h2:first-child { margin-top: 0; }
+  .explainer p, .explainer li {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+  }
+  .explainer ul { padding-left: 20px; }
+
+  footer {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-muted);
+    padding: 24px;
+    border-top: 1px solid var(--border);
+  }
+  footer a { color: var(--text-muted); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">AI<span>コスト</span>計算機</div>
+  <span class="badge">BETA</span>
+  <p>Claude・GPT・Gemini のAPI利用料金を概算比較</p>
+</header>
+
+<div class="wrap">
+  <div class="layout">
+
+    <!-- INPUT PANEL -->
+    <div class="panel">
+      <label class="label" for="promptText">プロンプト(入力文)</label>
+      <textarea id="promptText" placeholder="ここに実際に送るプロンプトを貼り付けると、概算トークン数を自動計算します。"></textarea>
+      <div class="token-readout">概算入力トークン数: <strong id="inputTokenCount">0</strong> トークン</div>
+
+      <div class="field" style="margin-top:18px;">
+        <label class="label" for="outputTokens">想定出力トークン数</label>
+        <input type="number" id="outputTokens" value="500" min="0">
+        <div class="hint">AIからの返答の長さの目安。日本語の場合、文字数 ÷ 1.5 が概算トークン数です。</div>
+      </div>
+
+      <div class="field">
+        <label class="label" for="monthlyRequests">月間リクエスト数</label>
+        <input type="number" id="monthlyRequests" value="1000" min="0">
+        <div class="hint">1ヶ月に何回この処理を実行するか(月額コスト試算に使用)。</div>
+      </div>
+
+      <div class="field" style="margin-bottom:0;">
+        <label class="label" for="inputTokensOverride">入力トークン数を直接指定(任意)</label>
+        <input type="number" id="inputTokensOverride" placeholder="空欄なら上のプロンプトから自動計算">
+      </div>
+    </div>
+
+    <!-- RESULTS PANEL -->
+    <div class="panel">
+      <div class="results-header">
+        <div class="section-label" style="margin-bottom:0;">モデル別コスト比較</div>
+        <button class="edit-toggle" id="editToggle">価格を編集</button>
+      </div>
+
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>モデル</th>
+              <th class="num">入力 $/1M</th>
+              <th class="num">出力 $/1M</th>
+              <th class="num">1回あたり</th>
+              <th class="num">月間(円)</th>
+            </tr>
+          </thead>
+          <tbody id="resultsBody"></tbody>
+        </table>
+      </div>
+      <div class="hint" style="margin-top:14px;">
+        価格は2026年8月時点の公開情報をもとにした概算です(為替レートは1ドル=158円で換算)。各社の価格改定は頻繁にあるため、契約前に必ず公式ページで最新価格をご確認のうえ、上表の価格欄は自由に書き換えてご利用ください。
+      </div>
+    </div>
+
+  </div>
+
+  <div class="panel" style="margin-top:20px;">
+    <div class="section-label">月間コストの比較(グラフ)</div>
+    <div id="barChart"></div>
+  </div>
+
+  <div class="ad-slot">広告枠(Google AdSense設置予定)</div>
+
+  <div class="explainer">
+    <h2>トークンとは?</h2>
+    <p>AIモデルは文章を「トークン」という単位に分割して処理します。英語では単語の一部、日本語ではおおよそ1〜2文字が1トークンに相当することが多く、モデルごとに正確な分割方法(トークナイザー)は異なります。このツールの概算値は目安としてご利用ください。</p>
+
+    <h2>入力トークンと出力トークンの違い</h2>
+    <p>多くのAPIでは、AIに送るプロンプト(入力トークン)と、AIが生成する返答(出力トークン)で単価が異なり、一般に出力の方が数倍高く設定されています。長文を生成させるタスクほど出力コストの比重が大きくなります。</p>
+
+    <h2>料金を比較するときの注意点</h2>
+    <ul>
+      <li>同じ「安い」モデルでも性能(精度・対応言語・文脈保持長)は異なるため、単純な価格だけで選ばない</li>
+      <li>キャッシュ機能(プロンプトキャッシュ)を使うと同じ入力の再送信コストを大幅に下げられる場合がある</li>
+      <li>為替レートの変動でドル建て価格の円換算コストは変わる</li>
+    </ul>
+  </div>
+</div>
+
+<footer>
+  料金は変更される場合があります。実際の契約・利用前に必ず各社公式サイトの最新料金をご確認ください。 &middot; <a href="../">webtools トップへ</a>
+</footer>
+
+<script>
+  const models = [
+    { id: 'haiku',    name: 'Claude Haiku 4.5',      provider: 'Anthropic', in: 1,    out: 5   },
+    { id: 'sonnet',   name: 'Claude Sonnet 5',       provider: 'Anthropic', in: 3,    out: 15  },
+    { id: 'opus',     name: 'Claude Opus 5',         provider: 'Anthropic', in: 5,    out: 25  },
+    { id: 'fable',    name: 'Claude Fable 5',        provider: 'Anthropic', in: 10,   out: 50  },
+    { id: 'luna',     name: 'GPT-5.6 Luna',          provider: 'OpenAI',    in: 0.2,  out: 1.2 },
+    { id: 'terra',    name: 'GPT-5.6 Terra',         provider: 'OpenAI',    in: 2,    out: 12  },
+    { id: 'sol',      name: 'GPT-5.6 Sol',           provider: 'OpenAI',    in: 5,    out: 30  },
+    { id: 'gemlite',  name: 'Gemini 3.5 Flash-Lite', provider: 'Google',    in: 0.3,  out: 2.5 },
+    { id: 'gemflash', name: 'Gemini 3.6 Flash',      provider: 'Google',    in: 1.5,  out: 7.5 },
+    { id: 'gempro',   name: 'Gemini 3.1 Pro',        provider: 'Google',    in: 2,    out: 12  },
+  ];
+
+  const USD_JPY = 158;
+  let editMode = false;
+
+  const promptEl = document.getElementById('promptText');
+  const inputTokenCountEl = document.getElementById('inputTokenCount');
+  const outputTokensEl = document.getElementById('outputTokens');
+  const monthlyReqEl = document.getElementById('monthlyRequests');
+  const overrideEl = document.getElementById('inputTokensOverride');
+  const resultsBody = document.getElementById('resultsBody');
+  const editToggle = document.getElementById('editToggle');
+  const barChartEl = document.getElementById('barChart');
+
+  function estimateTokens(text) {
+    const cjkMatches = text.match(/[　-ヿ㐀-䶿一-鿿豈-﫿ｦ-ﾟ]/g) || [];
+    const cjkCount = cjkMatches.length;
+    const otherCount = text.length - cjkCount;
+    return Math.ceil(cjkCount / 1.5 + otherCount / 4);
+  }
+
+  function getInputTokens() {
+    const override = parseFloat(overrideEl.value);
+    if (!isNaN(override) && override >= 0) return override;
+    return estimateTokens(promptEl.value);
+  }
+
+  function fmtUsd(n) {
+    if (n < 0.01) return '$' + n.toFixed(4);
+    return '$' + n.toFixed(2);
+  }
+  function fmtJpy(n) {
+    return '¥' + Math.round(n).toLocaleString();
+  }
+
+  function render() {
+    const autoTokens = estimateTokens(promptEl.value);
+    inputTokenCountEl.textContent = autoTokens.toLocaleString();
+
+    const inputTokens = getInputTokens();
+    const outputTokens = parseFloat(outputTokensEl.value) || 0;
+    const monthlyReq = parseFloat(monthlyReqEl.value) || 0;
+
+    const rows = models.map(m => {
+      const inPrice = parseFloat(document.getElementById('in-' + m.id)?.value ?? m.in);
+      const outPrice = parseFloat(document.getElementById('out-' + m.id)?.value ?? m.out);
+      const costPerReqUsd = (inputTokens / 1e6) * inPrice + (outputTokens / 1e6) * outPrice;
+      const monthlyUsd = costPerReqUsd * monthlyReq;
+      return { ...m, inPrice, outPrice, costPerReqUsd, monthlyUsd };
+    });
+
+    rows.sort((a, b) => a.monthlyUsd - b.monthlyUsd);
+    const cheapestId = rows[0]?.id;
+
+    resultsBody.innerHTML = rows.map(r => `
+      <tr class="${r.id === cheapestId ? 'cheapest' : ''}">
+        <td>
+          <div class="model-name">${r.name}${r.id === cheapestId ? '<span class="cheapest-badge">最安</span>' : ''}</div>
+          <div class="provider">${r.provider}</div>
+        </td>
+        <td class="num">${editMode
+          ? `<input class="price-input" id="in-${r.id}" type="number" step="0.01" value="${r.inPrice}">`
+          : '$' + r.inPrice}</td>
+        <td class="num">${editMode
+          ? `<input class="price-input" id="out-${r.id}" type="number" step="0.01" value="${r.outPrice}">`
+          : '$' + r.outPrice}</td>
+        <td class="num cost-value">${fmtUsd(r.costPerReqUsd)}</td>
+        <td class="num cost-value">${fmtJpy(r.monthlyUsd * USD_JPY)}</td>
+      </tr>
+    `).join('');
+
+    if (editMode) {
+      models.forEach(m => {
+        document.getElementById('in-' + m.id).addEventListener('input', render);
+        document.getElementById('out-' + m.id).addEventListener('input', render);
+      });
+    }
+
+    const maxMonthlyUsd = Math.max(...rows.map(r => r.monthlyUsd), 0.0001);
+    barChartEl.innerHTML = rows.map(r => {
+      const pct = Math.max((r.monthlyUsd / maxMonthlyUsd) * 100, 1.5);
+      return `
+        <div class="bar-row ${r.id === cheapestId ? 'cheapest' : ''}">
+          <div class="bar-label">${r.name}</div>
+          <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+          <div class="bar-value">${fmtJpy(r.monthlyUsd * USD_JPY)}</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  editToggle.addEventListener('click', () => {
+    editMode = !editMode;
+    editToggle.textContent = editMode ? '編集を終了' : '価格を編集';
+    render();
+  });
+
+  [promptEl, outputTokensEl, monthlyReqEl, overrideEl].forEach(el => {
+    el.addEventListener('input', render);
+  });
+
+  render();
+</script>
+
+</body>
+</html>
