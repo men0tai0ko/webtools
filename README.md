@@ -4,8 +4,8 @@
 
 ## 収録ツール
 
-- [AIコスト計算機](ai-cost-calculator/) — Claude・GPT・GeminiのAPI料金をトークン数から概算計算し、モデル別に1回あたり・月間コストを比較
-- [給与手取り計算機](salary-calculator/) — 額面年収から社会保険料・所得税・住民税を差し引いた手取り年収・月収を概算計算
+- [AIコスト計算機](https://men0tai0ko.github.io/webtools/ai-cost-calculator/)([ソース](ai-cost-calculator/)) — Claude・GPT・GeminiのAPI料金をトークン数から概算計算し、モデル別に1回あたり・月間コストを比較
+- [給与手取り計算機](https://men0tai0ko.github.io/webtools/salary-calculator/)([ソース](salary-calculator/)) — 額面年収から社会保険料・所得税・住民税を差し引いた手取り年収・月収を概算計算
 
 ## 開発
 
