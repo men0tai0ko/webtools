@@ -14,4 +14,4 @@
 
 - 価格データ(`ai-cost-calculator/index.html` 内の `models` 配列)は各社の価格改定に応じて随時更新してください。
 - 税率・保険料率(`salary-calculator/index.html` 内の各種定数)は年度が変わるたびに国税庁・協会けんぽ・厚生労働省の最新情報に合わせて更新してください。
-- `side-hustle-quiz/index.html` 内の `NOTE_PROFILE_URL` は、診断結果からの誘導先。個別記事のURLに差し替えるとより効果的です。
+- `side-hustle-quiz/index.html` 内の `NOTE_ARTICLE_URL` は、診断結果からの誘導先(現在は有料記事 article_01 の個別URLを設定済み)。
