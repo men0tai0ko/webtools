@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>給与手取り計算機 | 額面年収から手取り額を概算</title>
+<meta name="description" content="額面年収を入力するだけで、社会保険料・所得税・住民税を差し引いた手取り年収・手取り月収を概算計算。2026年度の税率・保険料率に対応。">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700;900&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #0e0e10;
+    --surface: #17171a;
+    --surface2: #1f1f24;
+    --border: #2a2a32;
+    --accent: #ff6b35;
+    --accent2: #ffd166;
+    --text: #e8e6e1;
+    --text-muted: #7a7880;
+    --green: #06d6a0;
+    --blue: #5eb1ff;
+    --radius: 8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Mono', monospace;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  a { color: var(--accent2); }
+
+  header {
+    padding: 20px 28px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--surface);
+    flex-wrap: wrap;
+  }
+
+  .logo {
+    font-family: 'Noto Serif JP', serif;
+    font-weight: 900;
+    font-size: 22px;
+    letter-spacing: -0.5px;
+  }
+  .logo span { color: var(--accent); }
+
+  .badge {
+    font-size: 10px;
+    background: var(--accent);
+    color: #000;
+    padding: 2px 8px;
+    border-radius: 100px;
+    font-weight: 500;
+    letter-spacing: 1px;
+  }
+
+  header p {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-left: auto;
+  }
+
+  .wrap {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 28px 20px 60px;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+
+  @media (max-width: 860px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+  }
+
+  .label {
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    display: block;
+  }
+
+  .field { margin-bottom: 18px; }
+  .field:last-child { margin-bottom: 0; }
+
+  .field input[type="number"] {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 16px;
+    padding: 10px 12px;
+    border-radius: var(--radius);
+    outline: none;
+  }
+  .field input[type="number"]:focus { border-color: var(--accent); }
+
+  .radio-row {
+    display: flex;
+    gap: 8px;
+  }
+  .radio-row label {
+    flex: 1;
+    text-align: center;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 8px 6px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: border-color .2s, background .2s;
+  }
+  .radio-row input { display: none; }
+  .radio-row input:checked + span { color: var(--accent2); }
+  .radio-row label:has(input:checked) { border-color: var(--accent2); background: #241f10; }
+
+  .hint {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 6px;
+    line-height: 1.6;
+  }
+
+  /* ─── RESULT HERO ─── */
+  .result-hero {
+    text-align: center;
+    padding: 10px 0 24px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 20px;
+  }
+  .result-hero .hero-label {
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .result-hero .hero-value {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 42px;
+    font-weight: 900;
+    color: var(--green);
+    line-height: 1.2;
+  }
+  .result-hero .hero-sub {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 6px;
+  }
+  .hero-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 18px;
+  }
+  .hero-stat {
+    background: var(--surface2);
+    border-radius: var(--radius);
+    padding: 10px;
+  }
+  .hero-stat .n { font-size: 16px; font-weight: 500; }
+  .hero-stat .l { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+
+  /* ─── BREAKDOWN ─── */
+  .section-label {
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+  }
+
+  .stack-bar {
+    display: flex;
+    height: 28px;
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 14px;
+  }
+  .stack-seg { transition: width .25s ease; }
+  .seg-net { background: var(--green); }
+  .seg-social { background: var(--blue); }
+  .seg-tax { background: var(--accent); }
+  .seg-resident { background: var(--accent2); }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .legend i { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  thead th {
+    text-align: left;
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  thead th.num, td.num { text-align: right; }
+  tbody tr { border-bottom: 1px solid var(--border); }
+  tbody tr.total { font-weight: 500; }
+  tbody tr.total td { color: var(--green); }
+  td { padding: 9px 10px; }
+  td.indent { padding-left: 22px; color: var(--text-muted); font-size: 12px; }
+
+  .ad-slot {
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 11px;
+    letter-spacing: 1px;
+    margin: 28px 0;
+  }
+
+  .explainer { margin-top: 40px; }
+  .explainer h2 {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 18px;
+    margin: 32px 0 12px;
+    color: var(--accent2);
+  }
+  .explainer h2:first-child { margin-top: 0; }
+  .explainer p, .explainer li {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+  }
+  .explainer ul { padding-left: 20px; }
+
+  footer {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-muted);
+    padding: 24px;
+    border-top: 1px solid var(--border);
+  }
+  footer a { color: var(--text-muted); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">給与<span>手取り</span>計算機</div>
+  <span class="badge">BETA</span>
+  <p>額面年収から社会保険料・税金を引いた手取り額を概算</p>
+</header>
+
+<div class="wrap">
+  <div class="layout">
+
+    <!-- INPUT PANEL -->
+    <div class="panel">
+      <div class="field">
+        <label class="label" for="grossIncome">額面年収(万円)</label>
+        <input type="number" id="grossIncome" value="400" min="0" step="1">
+        <div class="hint">ボーナス込みの、税・社会保険料が引かれる前の年収です。</div>
+      </div>
+
+      <div class="field">
+        <label class="label" for="age">年齢</label>
+        <input type="number" id="age" value="30" min="15" max="99" step="1">
+        <div class="hint">40〜64歳は介護保険料が上乗せされます。</div>
+      </div>
+
+      <div class="field">
+        <label class="label" for="dependents">扶養家族の人数</label>
+        <input type="number" id="dependents" value="0" min="0" max="10" step="1">
+        <div class="hint">配偶者(年収103万円以下など)・子・親など、税法上の扶養親族の人数。</div>
+      </div>
+    </div>
+
+    <!-- RESULTS PANEL -->
+    <div class="panel">
+      <div class="result-hero">
+        <div class="hero-label">手取り年収(概算)</div>
+        <div class="hero-value" id="netAnnual">¥0</div>
+        <div class="hero-sub">額面年収の <strong id="netRate">0</strong>% が手取りになります</div>
+
+        <div class="hero-grid">
+          <div class="hero-stat"><div class="n" id="netMonthly">¥0</div><div class="l">手取り月収(概算)</div></div>
+          <div class="hero-stat"><div class="n" id="totalDeduction">¥0</div><div class="l">天引き合計(年間)</div></div>
+          <div class="hero-stat"><div class="n" id="grossMonthly">¥0</div><div class="l">額面月収</div></div>
+        </div>
+      </div>
+
+      <div class="section-label">内訳</div>
+
+      <div class="stack-bar" id="stackBar"></div>
+      <div class="legend">
+        <span><i style="background:var(--green)"></i>手取り</span>
+        <span><i style="background:var(--blue)"></i>社会保険料</span>
+        <span><i style="background:var(--accent)"></i>所得税(復興特別所得税含む)</span>
+        <span><i style="background:var(--accent2)"></i>住民税(概算)</span>
+      </div>
+
+      <table>
+        <thead><tr><th>項目</th><th class="num">年額</th><th class="num">月額換算</th></tr></thead>
+        <tbody id="breakdownBody"></tbody>
+      </table>
+      <div class="hint" style="margin-top:14px;">
+        税率・保険料率は2026年度(令和8年度)の全国平均値をもとにした概算です。健康保険料率は都道府県により異なり、住民税は前年の所得をもとに翌年課税されるため、入社1年目は発生しないことがあります。正確な金額は源泉徴収票や自治体窓口、勤務先の給与規定でご確認ください。
+      </div>
+    </div>
+
+  </div>
+
+  <div class="ad-slot">広告枠(Google AdSense設置予定)</div>
+
+  <div class="explainer">
+    <h2>手取り額はどう決まる?</h2>
+    <p>額面年収(会社が支払う総額)から、①社会保険料(厚生年金・健康保険・介護保険・雇用保険)、②所得税・復興特別所得税、③住民税、の3つが天引きされた残りが「手取り」です。一般的に額面の75〜82%程度が手取りになるケースが多いです。</p>
+
+    <h2>社会保険料の内訳(2026年度・全国平均)</h2>
+    <ul>
+      <li>厚生年金保険料:18.30%(労使折半、本人負担9.15%)</li>
+      <li>健康保険料(協会けんぽ全国平均):9.90%(本人負担4.95%、都道府県で変動)</li>
+      <li>介護保険料(40〜64歳):1.62%(本人負担0.81%)</li>
+      <li>雇用保険料(一般の事業):1.35%(本人負担0.5%)</li>
+    </ul>
+
+    <h2>住民税が1年目だけ引かれない理由</h2>
+    <p>住民税は「前年の所得」をもとに毎年6月から翌年5月にかけて徴収される仕組みです。そのため新卒1年目など前年に所得がなかった場合、入社1年目の住民税負担はゼロになります。このツールでは2年目以降の状態を前提に計算しています。</p>
+  </div>
+</div>
+
+<footer>
+  実際の手取り額は勤務先の給与規定・居住地域・各種控除の適用状況により変動します。正確な金額は源泉徴収票等でご確認ください。 &middot; <a href="../">webtools トップへ</a>
+</footer>
+
+<script>
+  const grossEl = document.getElementById('grossIncome');
+  const ageEl = document.getElementById('age');
+  const depEl = document.getElementById('dependents');
+
+  const netAnnualEl = document.getElementById('netAnnual');
+  const netRateEl = document.getElementById('netRate');
+  const netMonthlyEl = document.getElementById('netMonthly');
+  const totalDeductionEl = document.getElementById('totalDeduction');
+  const grossMonthlyEl = document.getElementById('grossMonthly');
+  const stackBarEl = document.getElementById('stackBar');
+  const breakdownBodyEl = document.getElementById('breakdownBody');
+
+  function fmtYen(n) {
+    return '¥' + Math.round(n).toLocaleString();
+  }
+
+  // 給与所得控除(2026年分・改正後の簡易近似)
+  function employmentIncomeDeduction(gross) {
+    if (gross <= 1900000) return 690000;
+    if (gross <= 3600000) return gross * 0.3 + 80000;
+    if (gross <= 6600000) return gross * 0.2 + 440000;
+    if (gross <= 8500000) return gross * 0.1 + 1100000;
+    return 1950000;
+  }
+
+  // 基礎控除(所得税・2026年分)
+  function basicDeduction(employmentIncome) {
+    if (employmentIncome <= 4890000) return 1040000;
+    if (employmentIncome <= 6550000) return 670000;
+    if (employmentIncome <= 23500000) return 620000;
+    return 0;
+  }
+
+  // 所得税 速算表(2026年分)
+  function incomeTax(taxable) {
+    const brackets = [
+      { limit: 1950000, rate: 0.05, deduct: 0 },
+      { limit: 3300000, rate: 0.10, deduct: 97500 },
+      { limit: 6950000, rate: 0.20, deduct: 427500 },
+      { limit: 9000000, rate: 0.23, deduct: 636000 },
+      { limit: 18000000, rate: 0.33, deduct: 1536000 },
+      { limit: 40000000, rate: 0.40, deduct: 2796000 },
+      { limit: Infinity, rate: 0.45, deduct: 4796000 },
+    ];
+    const b = brackets.find(b => taxable <= b.limit);
+    return Math.max(0, taxable * b.rate - b.deduct);
+  }
+
+  function calc() {
+    const gross = Math.max(0, (parseFloat(grossEl.value) || 0) * 10000);
+    const age = parseFloat(ageEl.value) || 0;
+    const dependents = Math.max(0, parseInt(depEl.value) || 0);
+
+    // 社会保険料
+    const pension = gross * 0.0915;
+    const health = gross * 0.0495;
+    const nursing = (age >= 40 && age <= 64) ? gross * 0.0081 : 0;
+    const employment = gross * 0.005;
+    const socialTotal = pension + health + nursing + employment;
+
+    // 所得税
+    const empDeduction = employmentIncomeDeduction(gross);
+    const employmentIncome = Math.max(0, gross - empDeduction);
+    const basic = basicDeduction(employmentIncome);
+    const dependentDeductionIncomeTax = dependents * 380000;
+    const taxableIncome = Math.max(0, Math.floor((employmentIncome - socialTotal - basic - dependentDeductionIncomeTax) / 1000) * 1000);
+    const baseTax = incomeTax(taxableIncome);
+    const reconstructionTax = baseTax * 0.021;
+    const incomeTaxTotal = baseTax + reconstructionTax;
+
+    // 住民税(概算)
+    const residentBasic = 430000;
+    const dependentDeductionResident = dependents * 330000;
+    const residentTaxable = Math.max(0, Math.floor((employmentIncome - socialTotal - residentBasic - dependentDeductionResident) / 1000) * 1000);
+    const residentIncomeTax = residentTaxable * 0.10;
+    const residentPerCapita = 5000;
+    const residentTaxTotal = residentIncomeTax + residentPerCapita;
+
+    const totalDeductionAmount = socialTotal + incomeTaxTotal + residentTaxTotal;
+    const netAnnual = Math.max(0, gross - totalDeductionAmount);
+
+    netAnnualEl.textContent = fmtYen(netAnnual);
+    netRateEl.textContent = gross > 0 ? (netAnnual / gross * 100).toFixed(1) : '0';
+    netMonthlyEl.textContent = fmtYen(netAnnual / 12);
+    totalDeductionEl.textContent = fmtYen(totalDeductionAmount);
+    grossMonthlyEl.textContent = fmtYen(gross / 12);
+
+    const segments = [
+      { cls: 'seg-net', value: netAnnual },
+      { cls: 'seg-social', value: socialTotal },
+      { cls: 'seg-tax', value: incomeTaxTotal },
+      { cls: 'seg-resident', value: residentTaxTotal },
+    ];
+    stackBarEl.innerHTML = segments.map(s => {
+      const pct = gross > 0 ? Math.max((s.value / gross) * 100, 0) : 0;
+      return `<div class="stack-seg ${s.cls}" style="width:${pct}%"></div>`;
+    }).join('');
+
+    breakdownBodyEl.innerHTML = `
+      <tr><td>額面年収</td><td class="num">${fmtYen(gross)}</td><td class="num">${fmtYen(gross / 12)}</td></tr>
+      <tr><td>社会保険料 合計</td><td class="num">${fmtYen(socialTotal)}</td><td class="num">${fmtYen(socialTotal / 12)}</td></tr>
+      <tr><td class="indent">厚生年金保険料</td><td class="num">${fmtYen(pension)}</td><td class="num">${fmtYen(pension / 12)}</td></tr>
+      <tr><td class="indent">健康保険料</td><td class="num">${fmtYen(health)}</td><td class="num">${fmtYen(health / 12)}</td></tr>
+      ${nursing > 0 ? `<tr><td class="indent">介護保険料</td><td class="num">${fmtYen(nursing)}</td><td class="num">${fmtYen(nursing / 12)}</td></tr>` : ''}
+      <tr><td class="indent">雇用保険料</td><td class="num">${fmtYen(employment)}</td><td class="num">${fmtYen(employment / 12)}</td></tr>
+      <tr><td>所得税(復興特別所得税含む)</td><td class="num">${fmtYen(incomeTaxTotal)}</td><td class="num">${fmtYen(incomeTaxTotal / 12)}</td></tr>
+      <tr><td>住民税(概算・2年目以降)</td><td class="num">${fmtYen(residentTaxTotal)}</td><td class="num">${fmtYen(residentTaxTotal / 12)}</td></tr>
+      <tr class="total"><td>手取り</td><td class="num">${fmtYen(netAnnual)}</td><td class="num">${fmtYen(netAnnual / 12)}</td></tr>
+    `;
+  }
+
+  [grossEl, ageEl, depEl].forEach(el => el.addEventListener('input', calc));
+  calc();
+</script>
+
+</body>
+</html>
