@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>文章セルフチェック&類似度比較ツール | 紋切り型表現チェック・n-gram比較</title>
+<meta name="description" content="文章にありがちな紋切り型表現や文末表現の偏りをチェックし、2つの文章のn-gram類似度も比較できる無料ツール。ブラウザ内だけで完結、AI検出ツールではありません。">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700;900&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #0e0e10;
+    --surface: #17171a;
+    --surface2: #1f1f24;
+    --border: #2a2a32;
+    --accent: #ff6b35;
+    --accent2: #ffd166;
+    --text: #e8e6e1;
+    --text-muted: #9c9aa2;
+    --green: #06d6a0;
+    --red: #e0455b;
+    --radius: 8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Mono', monospace;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  a { color: var(--accent2); }
+
+  header {
+    padding: 20px 28px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--surface);
+    flex-wrap: wrap;
+  }
+
+  .logo {
+    font-family: 'Noto Serif JP', serif;
+    font-weight: 900;
+    font-size: 22px;
+    letter-spacing: -0.5px;
+  }
+  .logo span { color: var(--accent); }
+
+  .badge {
+    font-size: 10px;
+    background: var(--accent);
+    color: #000;
+    padding: 2px 8px;
+    border-radius: 100px;
+    font-weight: 500;
+    letter-spacing: 1px;
+  }
+
+  header p {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-left: auto;
+  }
+
+  .wrap {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 28px 20px 60px;
+  }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px;
+    margin-bottom: 20px;
+  }
+
+  .panel h2 {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 17px;
+    margin-bottom: 6px;
+  }
+  .panel .sub {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+  }
+
+  .notice {
+    background: #241a12;
+    border: 1px solid #4a3218;
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    font-size: 12px;
+    color: var(--accent2);
+    margin-bottom: 18px;
+    line-height: 1.7;
+  }
+
+  textarea {
+    width: 100%;
+    min-height: 220px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 13.5px;
+    padding: 14px;
+    border-radius: var(--radius);
+    outline: none;
+    resize: vertical;
+    line-height: 1.7;
+  }
+  textarea:focus { border-color: var(--accent); }
+
+  .field { margin-bottom: 14px; }
+  .field:last-child { margin-bottom: 0; }
+  .label {
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    display: block;
+  }
+
+  /* ─── セルフチェック結果 ─── */
+  .check-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-top: 18px;
+  }
+  @media (max-width: 640px) { .check-grid { grid-template-columns: 1fr; } }
+
+  .check-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+  }
+  .check-card .head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .check-card .title { font-size: 13px; font-weight: 500; }
+  .check-card .count {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 9px;
+    border-radius: 100px;
+    background: var(--surface);
+    color: var(--text-muted);
+  }
+  .check-card .count.hit { background: #241a12; color: var(--accent2); }
+  .check-card .detail { font-size: 11.5px; color: var(--text-muted); line-height: 1.7; }
+  .check-card .detail .phrase { color: var(--text); }
+
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+  .stat-row .v { color: var(--text); font-weight: 500; }
+
+  /* ─── 類似度比較 ─── */
+  .compare-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 700px) { .compare-grid { grid-template-columns: 1fr; } }
+
+  .ngram-row { display: flex; align-items: center; gap: 14px; margin: 16px 0; flex-wrap: wrap; }
+  .ngram-row .toggle-row { display: flex; gap: 8px; }
+  .toggle-row button {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    padding: 8px 14px;
+    border-radius: var(--radius);
+    cursor: pointer;
+  }
+  .toggle-row button.active { border-color: var(--accent); background: #241a12; color: var(--accent2); }
+
+  .similarity-banner {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 10px;
+    background: var(--surface2);
+    border-radius: var(--radius);
+    padding: 18px;
+    margin: 16px 0;
+  }
+  .similarity-banner .num { font-size: 34px; font-weight: 700; color: var(--accent2); font-family: 'DM Mono', monospace; }
+  .similarity-banner .label { font-size: 12px; color: var(--text-muted); }
+
+  .highlight-box {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    font-size: 13px;
+    line-height: 1.9;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 320px;
+    overflow-y: auto;
+  }
+  .highlight-box mark {
+    background: #4a3218;
+    color: var(--accent2);
+    border-radius: 3px;
+    padding: 0 1px;
+  }
+  .highlight-box.empty { color: #666; }
+
+  .ad-slot {
+    display: none;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 11px;
+    letter-spacing: 1px;
+    margin: 28px 0;
+  }
+
+  .explainer { margin-top: 40px; }
+  .explainer h2 {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 18px;
+    margin: 32px 0 12px;
+    color: var(--accent2);
+  }
+  .explainer h2:first-child { margin-top: 0; }
+  .explainer p, .explainer li { font-size: 13px; color: var(--text-muted); margin-bottom: 10px; }
+  .explainer ul { padding-left: 20px; }
+
+  footer {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-muted);
+    padding: 24px;
+    border-top: 1px solid var(--border);
+  }
+  footer a { color: var(--text-muted); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">文章<span>セルフチェック</span>&類似度比較</div>
+  <span class="badge">BETA</span>
+  <p>紋切り型表現チェックとn-gram類似度比較、ブラウザ内だけで完結</p>
+</header>
+
+<div class="wrap">
+
+  <div class="panel">
+    <h2>紋切り型表現セルフチェック</h2>
+    <div class="sub">よく使われる定型的な接続表現・結び表現・ヘッジ表現の頻度と、文の長さ・文末表現の偏りをチェックします。</div>
+    <div class="notice">これはAI生成文章を判定する「AI検出ツール」ではありません。単に、文章でよく見られる紋切り型・定型的な表現を機械的にカウントしているだけです。該当したからといって「AIが書いた」ことにはなりませんし、逆に該当しなくても人間らしい文章とは限りません。あくまで文章を見直すきっかけとしてご利用ください。</div>
+
+    <div class="field">
+      <label class="label" for="checkInput">本文</label>
+      <textarea id="checkInput" placeholder="チェックしたい文章を貼り付けてください"></textarea>
+    </div>
+
+    <div class="check-grid" id="checkResults"></div>
+  </div>
+
+  <div class="panel">
+    <h2>2つの文章の類似度比較</h2>
+    <div class="sub">文字n-gram(連続する文字の並び)を使って、2つの文章がどれくらい似ているかを比較します。</div>
+    <div class="notice">表記の重なりを機械的に測定した参考値です。剽窃検出や著作権上の判定を保証するものではありません。一般的な言い回しが多い文章同士は、内容的に無関係でも数値がある程度高く出ることがあります。</div>
+
+    <div class="compare-grid">
+      <div class="field">
+        <label class="label" for="textA">テキストA(下書きなど)</label>
+        <textarea id="textA" placeholder="1つ目の文章"></textarea>
+      </div>
+      <div class="field">
+        <label class="label" for="textB">テキストB(参照元など)</label>
+        <textarea id="textB" placeholder="2つ目の文章"></textarea>
+      </div>
+    </div>
+
+    <div class="ngram-row">
+      <div class="label" style="margin-bottom:0;">n-gramの単位</div>
+      <div class="toggle-row" id="ngramToggle">
+        <button class="active" data-n="2">2文字(bi-gram)</button>
+        <button data-n="3">3文字(tri-gram)</button>
+      </div>
+    </div>
+
+    <div class="similarity-banner">
+      <div class="num" id="similarityValue">0%</div>
+      <div class="label">類似度<br>(Dice係数)</div>
+    </div>
+
+    <div class="field">
+      <label class="label">テキストA中の一致箇所(テキストBと重なる部分をハイライト)</label>
+      <div class="highlight-box empty" id="highlightBox">テキストAとテキストBの両方を入力すると表示されます</div>
+    </div>
+  </div>
+
+  <div class="ad-slot">広告枠(Google AdSense設置予定)</div>
+
+  <div class="explainer">
+    <h2>紋切り型表現チェックの見方</h2>
+    <ul>
+      <li><strong>接続表現・結び表現・ヘッジ表現</strong>は、使うこと自体が悪いわけではありません。同じ表現を何度も繰り返していないか、機械的な言い回しに頼りすぎていないかを振り返る材料としてお使いください。</li>
+      <li><strong>文長のばらつき</strong>が小さいと、文章のリズムが単調に感じられることがあります。短い文と長い文を混ぜると読みやすくなる場合があります。</li>
+      <li><strong>文末表現</strong>が「です/ます」ばかりに偏っていると単調な印象になりがちです。体言止めや疑問形を適度に混ぜると変化が出ます。</li>
+    </ul>
+
+    <h2>n-gram類似度について</h2>
+    <p>n-gramとは、文章を連続するn文字ずつに分割したものです。2つの文章に共通するn-gramの割合をDice係数という指標で計算し、類似度として表示しています。目安として、30%未満はほとんど重複がない、30〜60%は部分的に似た表現がある、60%以上はかなり似た表現が多い状態です。ただし短い文章や一般的な言い回しが多い文章では数値が高く出やすいため、あくまで参考値としてご利用ください。</p>
+
+    <h2>あわせて使いたいツール</h2>
+    <p>文字数や原稿用紙換算をチェックしたい方は<a href="../note-writing-tools/">文字数&原稿用紙換算・Markdownプレビュー</a>もどうぞ。</p>
+  </div>
+</div>
+
+<footer>
+  本ツールの判定・数値はすべて簡易的な参考値です。文章の品質や独自性の最終判断はご自身で行ってください。 &middot; <a href="../">webtools トップへ</a>
+</footer>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+
+  function escapeHtml(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  /* ═══ 紋切り型表現セルフチェック ═══ */
+  const PATTERN_GROUPS = [
+    {
+      key: 'connector',
+      title: '紋切り型の接続表現',
+      phrases: ['まず、', '次に、', 'そして、', 'さらに、', '一方で、', 'このように', 'したがって', '言い換えると', 'なぜなら', 'つまり、', 'また、', 'そのため、', '加えて、'],
+    },
+    {
+      key: 'closing',
+      title: '紋切り型の結び表現',
+      phrases: ['と言えるでしょう', 'ではないでしょうか', 'することが重要です', 'と言っても過言ではありません', '以上のことから', '今後が期待されます', 'べきでしょう'],
+    },
+    {
+      key: 'hedge',
+      title: 'ヘッジ表現(断定を避ける言い回し)',
+      phrases: ['かもしれません', 'と考えられます', 'と言えるかもしれません', 'の可能性があります', 'と思われます', '場合があります'],
+    },
+  ];
+
+  function countOccurrences(text, needle) {
+    if (!needle) return 0;
+    return text.split(needle).length - 1;
+  }
+
+  function splitSentences(text) {
+    return text
+      .split(/[。!?！?\n]+/)
+      .map(s => s.trim())
+      .filter(s => s.length > 0);
+  }
+
+  function classifyEnding(sentence) {
+    if (/[?？]$/.test(sentence)) return 'question';
+    if (/(です|でした|ます|ました)$/.test(sentence)) return 'desumasu';
+    if (/(だ|だった|である|であった)$/.test(sentence)) return 'da';
+    return 'other';
+  }
+
+  function renderPatternCard(group, text) {
+    const hits = group.phrases.map(p => ({ phrase: p, count: countOccurrences(text, p) })).filter(h => h.count > 0);
+    const total = hits.reduce((s, h) => s + h.count, 0);
+    const detail = hits.length
+      ? hits.map(h => `<span class="phrase">「${escapeHtml(h.phrase)}」</span>×${h.count}`).join('、')
+      : '該当なし';
+    return `
+      <div class="check-card">
+        <div class="head">
+          <div class="title">${group.title}</div>
+          <div class="count ${total > 0 ? 'hit' : ''}">${total}件</div>
+        </div>
+        <div class="detail">${detail}</div>
+      </div>
+    `;
+  }
+
+  function renderStatsCard(text) {
+    const sentences = splitSentences(text);
+    let lengthCard, endingCard;
+
+    if (sentences.length < 2) {
+      lengthCard = `
+        <div class="check-card">
+          <div class="head"><div class="title">文長のばらつき</div><div class="count">-</div></div>
+          <div class="detail">判定には文が2つ以上必要です。</div>
+        </div>`;
+    } else {
+      const lens = sentences.map(s => s.length);
+      const mean = lens.reduce((a, b) => a + b, 0) / lens.length;
+      const variance = lens.reduce((a, b) => a + (b - mean) ** 2, 0) / lens.length;
+      const stddev = Math.sqrt(variance);
+      const cv = mean > 0 ? stddev / mean : 0;
+      const label = cv < 0.2 ? 'ばらつきが小さい(単調に見える可能性)' : cv < 0.5 ? '普通' : 'ばらつきが大きい';
+      lengthCard = `
+        <div class="check-card">
+          <div class="head"><div class="title">文長のばらつき</div><div class="count">${label}</div></div>
+          <div class="detail">
+            <div class="stat-row"><span>文の数</span><span class="v">${sentences.length}</span></div>
+            <div class="stat-row"><span>平均文長</span><span class="v">${mean.toFixed(1)}字</span></div>
+            <div class="stat-row"><span>変動係数(標準偏差/平均)</span><span class="v">${cv.toFixed(2)}</span></div>
+          </div>
+        </div>`;
+    }
+
+    if (sentences.length < 3) {
+      endingCard = `
+        <div class="check-card">
+          <div class="head"><div class="title">文末表現の多様性</div><div class="count">-</div></div>
+          <div class="detail">判定には文が3つ以上必要です。</div>
+        </div>`;
+    } else {
+      const endings = sentences.map(classifyEnding);
+      const desumasuRatio = endings.filter(e => e === 'desumasu').length / endings.length;
+      const flagged = desumasuRatio > 0.85;
+      endingCard = `
+        <div class="check-card">
+          <div class="head"><div class="title">文末表現の多様性</div><div class="count ${flagged ? 'hit' : ''}">${Math.round(desumasuRatio * 100)}%</div></div>
+          <div class="detail">「です/ます」で終わる文の割合です。高すぎると単調な印象になりやすいです。</div>
+        </div>`;
+    }
+
+    return lengthCard + endingCard;
+  }
+
+  function updateCheck() {
+    const text = $('checkInput').value;
+    const grid = $('checkResults');
+    if (!text.trim()) {
+      grid.innerHTML = '<div style="grid-column:1/-1; color:var(--text-muted); font-size:12px;">本文を入力するとチェック結果が表示されます</div>';
+      return;
+    }
+    grid.innerHTML = PATTERN_GROUPS.map(g => renderPatternCard(g, text)).join('') + renderStatsCard(text);
+  }
+
+  $('checkInput').addEventListener('input', updateCheck);
+  updateCheck();
+
+  /* ═══ n-gram類似度比較 ═══ */
+  let ngramN = 2;
+
+  function getNgrams(text, n) {
+    const grams = [];
+    for (let i = 0; i <= text.length - n; i++) grams.push(text.slice(i, i + n));
+    return grams;
+  }
+
+  function diceCoefficient(gramsA, gramsB) {
+    if (gramsA.length === 0 || gramsB.length === 0) return 0;
+    const countsB = new Map();
+    gramsB.forEach(g => countsB.set(g, (countsB.get(g) || 0) + 1));
+    let matches = 0;
+    gramsA.forEach(g => {
+      const remaining = countsB.get(g) || 0;
+      if (remaining > 0) { matches++; countsB.set(g, remaining - 1); }
+    });
+    return (2 * matches) / (gramsA.length + gramsB.length);
+  }
+
+  function highlightMatches(text, n, otherGramSet) {
+    const matched = new Array(text.length).fill(false);
+    for (let i = 0; i <= text.length - n; i++) {
+      if (otherGramSet.has(text.slice(i, i + n))) {
+        for (let k = 0; k < n; k++) matched[i + k] = true;
+      }
+    }
+    let html = '';
+    let i = 0;
+    while (i < text.length) {
+      let j = i;
+      if (matched[i]) {
+        while (j < text.length && matched[j]) j++;
+        html += `<mark>${escapeHtml(text.slice(i, j))}</mark>`;
+      } else {
+        while (j < text.length && !matched[j]) j++;
+        html += escapeHtml(text.slice(i, j));
+      }
+      i = j;
+    }
+    return html;
+  }
+
+  function updateCompare() {
+    const a = $('textA').value;
+    const b = $('textB').value;
+    const box = $('highlightBox');
+
+    if (!a.trim() || !b.trim()) {
+      $('similarityValue').textContent = '0%';
+      box.classList.add('empty');
+      box.innerHTML = 'テキストAとテキストBの両方を入力すると表示されます';
+      return;
+    }
+
+    const gramsA = getNgrams(a, ngramN);
+    const gramsB = getNgrams(b, ngramN);
+    const score = diceCoefficient(gramsA, gramsB);
+    $('similarityValue').textContent = Math.round(score * 100) + '%';
+
+    box.classList.remove('empty');
+    if (gramsA.length === 0) {
+      box.innerHTML = escapeHtml(a);
+    } else {
+      const setB = new Set(gramsB);
+      box.innerHTML = highlightMatches(a, ngramN, setB);
+    }
+  }
+
+  $('textA').addEventListener('input', updateCompare);
+  $('textB').addEventListener('input', updateCompare);
+  $('ngramToggle').addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    ngramN = parseInt(btn.dataset.n, 10);
+    $('ngramToggle').querySelectorAll('button').forEach(b => b.classList.toggle('active', b === btn));
+    updateCompare();
+  });
+
+  updateCompare();
+</script>
+
+</body>
+</html>
