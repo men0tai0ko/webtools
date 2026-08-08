@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QRコード生成ツール | URL・Wi-Fi・メール・電話番号に対応</title>
+<meta name="description" content="URL・テキスト、Wi-Fi接続情報、メール、電話番号からQRコードを無料で生成。サイズ・誤り訂正レベル・配色をカスタマイズしてPNGでダウンロードできます。">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700;900&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #0e0e10;
+    --surface: #17171a;
+    --surface2: #1f1f24;
+    --border: #2a2a32;
+    --accent: #ff6b35;
+    --accent2: #ffd166;
+    --text: #e8e6e1;
+    --text-muted: #9c9aa2;
+    --radius: 8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Mono', monospace;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  a { color: var(--accent2); }
+
+  header {
+    padding: 20px 28px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--surface);
+    flex-wrap: wrap;
+  }
+
+  .logo {
+    font-family: 'Noto Serif JP', serif;
+    font-weight: 900;
+    font-size: 22px;
+    letter-spacing: -0.5px;
+  }
+  .logo span { color: var(--accent); }
+
+  .badge {
+    font-size: 10px;
+    background: var(--accent);
+    color: #000;
+    padding: 2px 8px;
+    border-radius: 100px;
+    font-weight: 500;
+    letter-spacing: 1px;
+  }
+
+  header p {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-left: auto;
+  }
+
+  .wrap {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 28px 20px 60px;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(320px, 1fr) 340px;
+    gap: 24px;
+    align-items: start;
+  }
+  @media (max-width: 860px) { .layout { grid-template-columns: 1fr; } }
+
+  .preview-col { position: sticky; top: 20px; }
+  @media (max-width: 860px) { .preview-col { position: static; } }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px;
+    margin-bottom: 16px;
+  }
+
+  .panel h2 {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 15px;
+    margin-bottom: 4px;
+  }
+  .panel .sub {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+  }
+
+  .label {
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    display: block;
+  }
+
+  .field { margin-bottom: 14px; }
+  .field:last-child { margin-bottom: 0; }
+
+  .field input[type="text"],
+  .field input[type="tel"],
+  .field input[type="email"],
+  .field select,
+  .field textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    padding: 9px 11px;
+    border-radius: var(--radius);
+    outline: none;
+  }
+  .field textarea { resize: vertical; min-height: 60px; }
+  .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--accent); }
+
+  .field-color {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .field-color input[type="color"] {
+    width: 44px;
+    height: 34px;
+    padding: 2px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+  }
+  .field-color span { font-size: 13px; color: var(--text-muted); }
+
+  .checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  .checkbox-row input { width: 16px; height: 16px; }
+
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  @media (max-width: 480px) { .row2 { grid-template-columns: 1fr; } }
+
+  .toggle-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .toggle-row button {
+    flex: 1;
+    min-width: 90px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    padding: 10px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: border-color .2s, color .2s, background .2s;
+  }
+  .toggle-row button.active { border-color: var(--accent); background: #241a12; color: var(--accent2); }
+
+  .hint {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 6px;
+    line-height: 1.6;
+  }
+
+  /* ─── プレビュー ─── */
+  .qr-preview-box {
+    background: #fff;
+    border-radius: var(--radius);
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 240px;
+  }
+  .qr-preview-box canvas { max-width: 100%; height: auto; image-rendering: pixelated; }
+  .qr-preview-box .empty { color: #999; font-size: 12px; text-align: center; }
+
+  .download-btn {
+    width: 100%;
+    background: var(--accent);
+    border: none;
+    color: #000;
+    font-family: 'DM Mono', monospace;
+    font-weight: 500;
+    font-size: 14px;
+    padding: 14px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    margin-top: 14px;
+  }
+  .download-btn:hover { background: var(--accent2); }
+  .download-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+  .ad-slot {
+    display: none;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 11px;
+    letter-spacing: 1px;
+    margin: 28px 0;
+  }
+
+  .explainer { margin-top: 40px; max-width: 860px; margin-left: auto; margin-right: auto; }
+  .explainer h2 {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 18px;
+    margin: 32px 0 12px;
+    color: var(--accent2);
+  }
+  .explainer h2:first-child { margin-top: 0; }
+  .explainer p, .explainer li { font-size: 13px; color: var(--text-muted); margin-bottom: 10px; }
+  .explainer ul { padding-left: 20px; }
+
+  footer {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-muted);
+    padding: 24px;
+    border-top: 1px solid var(--border);
+  }
+  footer a { color: var(--text-muted); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">QR<span>コード</span>生成ツール</div>
+  <span class="badge">BETA</span>
+  <p>URL・Wi-Fi・メール・電話番号に対応、ブラウザ内だけで生成</p>
+</header>
+
+<div class="wrap">
+
+  <div class="layout">
+    <div class="form-col">
+
+      <div class="panel">
+        <h2>QRコードの内容</h2>
+        <div class="sub">用途に合わせてモードを選んでください。</div>
+        <div class="toggle-row" id="modeToggle">
+          <button class="active" data-mode="text">テキスト/URL</button>
+          <button data-mode="wifi">Wi-Fi</button>
+          <button data-mode="mail">メール</button>
+          <button data-mode="tel">電話番号</button>
+        </div>
+
+        <!-- テキスト/URL -->
+        <div class="mode-fields" data-mode-fields="text">
+          <div class="field">
+            <label class="label" for="textInput">テキストまたはURL</label>
+            <textarea id="textInput" placeholder="https://example.com/ または自由なテキスト"></textarea>
+          </div>
+        </div>
+
+        <!-- Wi-Fi -->
+        <div class="mode-fields" data-mode-fields="wifi" style="display:none;">
+          <div class="field">
+            <label class="label" for="wifiSsid">SSID(ネットワーク名)</label>
+            <input type="text" id="wifiSsid" placeholder="MyHomeWiFi">
+          </div>
+          <div class="row2">
+            <div class="field">
+              <label class="label" for="wifiPass">パスワード</label>
+              <input type="text" id="wifiPass" placeholder="パスワード">
+            </div>
+            <div class="field">
+              <label class="label" for="wifiEnc">暗号方式</label>
+              <select id="wifiEnc">
+                <option value="WPA" selected>WPA/WPA2</option>
+                <option value="WEP">WEP</option>
+                <option value="nopass">暗号化なし</option>
+              </select>
+            </div>
+          </div>
+          <div class="checkbox-row">
+            <input type="checkbox" id="wifiHidden">
+            <label for="wifiHidden">ステルスSSID(非公開ネットワーク)</label>
+          </div>
+        </div>
+
+        <!-- メール -->
+        <div class="mode-fields" data-mode-fields="mail" style="display:none;">
+          <div class="field">
+            <label class="label" for="mailTo">宛先メールアドレス</label>
+            <input type="email" id="mailTo" placeholder="mail@example.com">
+          </div>
+          <div class="field">
+            <label class="label" for="mailSubject">件名(任意)</label>
+            <input type="text" id="mailSubject">
+          </div>
+          <div class="field">
+            <label class="label" for="mailBody">本文(任意)</label>
+            <textarea id="mailBody"></textarea>
+          </div>
+        </div>
+
+        <!-- 電話番号 -->
+        <div class="mode-fields" data-mode-fields="tel" style="display:none;">
+          <div class="field">
+            <label class="label" for="telInput">電話番号</label>
+            <input type="tel" id="telInput" placeholder="090-1234-5678">
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>見た目の設定</h2>
+        <div class="row2">
+          <div class="field">
+            <label class="label" for="sizeSelect">サイズ</label>
+            <select id="sizeSelect">
+              <option value="200">200 x 200 px</option>
+              <option value="300" selected>300 x 300 px</option>
+              <option value="400">400 x 400 px</option>
+              <option value="600">600 x 600 px</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="label" for="eccSelect">誤り訂正レベル</label>
+            <select id="eccSelect">
+              <option value="L">L(約7%)</option>
+              <option value="M" selected>M(約15%)</option>
+              <option value="Q">Q(約25%)</option>
+              <option value="H">H(約30%)</option>
+            </select>
+          </div>
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label class="label" for="fgColor">前景色</label>
+            <div class="field-color">
+              <input type="color" id="fgColor" value="#000000">
+              <span id="fgColorText">#000000</span>
+            </div>
+          </div>
+          <div class="field">
+            <label class="label" for="bgColor">背景色</label>
+            <div class="field-color">
+              <input type="color" id="bgColor" value="#ffffff">
+              <span id="bgColorText">#ffffff</span>
+            </div>
+          </div>
+        </div>
+        <div class="hint">読み取り精度を優先する場合は、背景を明るい色・前景を暗い色のままにし、コントラストをはっきりさせることをおすすめします。ロゴを重ねる予定がある場合は誤り訂正レベルを高め(Q・H)にしてください。</div>
+      </div>
+
+    </div>
+
+    <div class="preview-col">
+      <div class="panel">
+        <h2>プレビュー</h2>
+        <div class="qr-preview-box" id="qrBox">
+          <div class="empty">内容を入力するとここにQRコードが表示されます</div>
+        </div>
+        <button type="button" class="download-btn" id="downloadBtn" disabled>PNGでダウンロード</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="ad-slot">広告枠(Google AdSense設置予定)</div>
+
+  <div class="explainer">
+    <h2>使い方</h2>
+    <ul>
+      <li>モードを選んで内容を入力すると、右側にQRコードがリアルタイムで表示されます。</li>
+      <li>「PNGでダウンロード」で画像として保存できます。名刺・チラシ・POPなどにそのまま使えます。</li>
+      <li>入力した内容はすべてブラウザ内で処理され、外部サーバーには送信されません。</li>
+    </ul>
+
+    <h2>Wi-Fi用QRコードについて</h2>
+    <p>スマートフォンのカメラでQRコードを読み取るだけで、SSIDとパスワードを手入力せずにWi-Fiへ接続できます。来客用Wi-Fiの案内カードなどに便利です。ただし読み取り対応状況は端末やOSのバージョンによって異なります。</p>
+
+    <h2>誤り訂正レベルとは?</h2>
+    <p>QRコードの一部が汚れたり隠れたりしても読み取れるようにする仕組みです。レベルを上げるほど破損への耐性は上がりますが、その分コードの模様が細かくなります。通常利用ならM、中央にロゴを載せる場合はQ以上を選んでください。</p>
+  </div>
+</div>
+
+<footer>
+  生成したQRコードは印刷前に必ずスマートフォン等で読み取りテストを行ってください。 &middot; <a href="../">webtools トップへ</a>
+</footer>
+
+<script src="qrcode.js"></script>
+<script src="qrcode_UTF8.js"></script>
+<script>
+  let mode = 'text';
+  const $ = (id) => document.getElementById(id);
+  let currentCanvas = null;
+
+  $('modeToggle').addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    mode = btn.dataset.mode;
+    $('modeToggle').querySelectorAll('button').forEach(b => b.classList.toggle('active', b === btn));
+    document.querySelectorAll('.mode-fields').forEach(el => {
+      el.style.display = el.dataset.modeFields === mode ? '' : 'none';
+    });
+    updateQr();
+  });
+
+  function escapeWifi(s) {
+    return String(s || '').replace(/([\\;,:"])/g, '\\$1');
+  }
+
+  function buildMailto() {
+    const to = $('mailTo').value.trim();
+    if (!to) return '';
+    const params = [];
+    if ($('mailSubject').value.trim()) params.push('subject=' + encodeURIComponent($('mailSubject').value.trim()));
+    if ($('mailBody').value.trim()) params.push('body=' + encodeURIComponent($('mailBody').value.trim()));
+    return 'mailto:' + to + (params.length ? '?' + params.join('&') : '');
+  }
+
+  function buildContent() {
+    if (mode === 'text') {
+      return $('textInput').value.trim();
+    }
+    if (mode === 'wifi') {
+      const ssid = $('wifiSsid').value.trim();
+      if (!ssid) return '';
+      const enc = $('wifiEnc').value;
+      const pass = $('wifiPass').value;
+      const hidden = $('wifiHidden').checked;
+      let s = `WIFI:T:${enc};S:${escapeWifi(ssid)};`;
+      if (enc !== 'nopass') s += `P:${escapeWifi(pass)};`;
+      if (hidden) s += 'H:true;';
+      s += ';';
+      return s;
+    }
+    if (mode === 'mail') {
+      return buildMailto();
+    }
+    if (mode === 'tel') {
+      const tel = $('telInput').value.trim();
+      return tel ? 'tel:' + tel : '';
+    }
+    return '';
+  }
+
+  function renderQrToCanvas(qr, canvas, sizePx, fgColor, bgColor) {
+    const count = qr.getModuleCount();
+    const margin = 4; // QR仕様上のクワイエットゾーン(最低4モジュール)
+    const totalModules = count + margin * 2;
+    const cell = Math.max(1, Math.floor(sizePx / totalModules));
+    const canvasSize = cell * totalModules;
+    canvas.width = canvasSize;
+    canvas.height = canvasSize;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(0, 0, canvasSize, canvasSize);
+    ctx.fillStyle = fgColor;
+    for (let r = 0; r < count; r++) {
+      for (let c = 0; c < count; c++) {
+        if (qr.isDark(r, c)) {
+          ctx.fillRect((c + margin) * cell, (r + margin) * cell, cell, cell);
+        }
+      }
+    }
+  }
+
+  function updateQr() {
+    const content = buildContent();
+    const box = $('qrBox');
+    const downloadBtn = $('downloadBtn');
+
+    if (!content) {
+      box.innerHTML = '<div class="empty">内容を入力するとここにQRコードが表示されます</div>';
+      downloadBtn.disabled = true;
+      currentCanvas = null;
+      return;
+    }
+
+    try {
+      const ecc = $('eccSelect').value;
+      const qr = qrcode(0, ecc); // typeNumber 0 = 自動でサイズを選択
+      qr.addData(content);
+      qr.make();
+
+      const size = parseInt($('sizeSelect').value, 10) || 300;
+      const fg = $('fgColor').value;
+      const bg = $('bgColor').value;
+
+      const canvas = document.createElement('canvas');
+      renderQrToCanvas(qr, canvas, size, fg, bg);
+
+      box.innerHTML = '';
+      box.appendChild(canvas);
+      currentCanvas = canvas;
+      downloadBtn.disabled = false;
+    } catch (err) {
+      box.innerHTML = '<div class="empty">内容が長すぎるか、対応していない文字が含まれています。内容を短くしてお試しください。</div>';
+      downloadBtn.disabled = true;
+      currentCanvas = null;
+    }
+  }
+
+  $('downloadBtn').addEventListener('click', () => {
+    if (!currentCanvas) return;
+    currentCanvas.toBlob((blob) => {
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'qrcode.png';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 'image/png');
+  });
+
+  $('fgColor').addEventListener('input', () => { $('fgColorText').textContent = $('fgColor').value; updateQr(); });
+  $('bgColor').addEventListener('input', () => { $('bgColorText').textContent = $('bgColor').value; updateQr(); });
+
+  document.querySelectorAll('.form-col input, .form-col select, .form-col textarea').forEach(el => {
+    if (el.id === 'fgColor' || el.id === 'bgColor') return;
+    el.addEventListener('input', updateQr);
+  });
+
+  updateQr();
+</script>
+
+</body>
+</html>

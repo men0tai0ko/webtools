@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>カラーパレット抽出&コントラストチェッカー | 無料デザインツール</title>
+<meta name="description" content="画像から主要な配色をブラウザ内だけで自動抽出し、WCAG基準のコントラスト比チェックまでできる無料ツール。抽出した色をそのままコントラストチェッカーに使えます。">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700;900&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #0e0e10;
+    --surface: #17171a;
+    --surface2: #1f1f24;
+    --border: #2a2a32;
+    --accent: #ff6b35;
+    --accent2: #ffd166;
+    --text: #e8e6e1;
+    --text-muted: #9c9aa2;
+    --green: #06d6a0;
+    --red: #e0455b;
+    --radius: 8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Mono', monospace;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  a { color: var(--accent2); }
+
+  header {
+    padding: 20px 28px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--surface);
+    flex-wrap: wrap;
+  }
+
+  .logo {
+    font-family: 'Noto Serif JP', serif;
+    font-weight: 900;
+    font-size: 22px;
+    letter-spacing: -0.5px;
+  }
+  .logo span { color: var(--accent); }
+
+  .badge {
+    font-size: 10px;
+    background: var(--accent);
+    color: #000;
+    padding: 2px 8px;
+    border-radius: 100px;
+    font-weight: 500;
+    letter-spacing: 1px;
+  }
+
+  header p {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-left: auto;
+  }
+
+  .wrap {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 28px 20px 60px;
+  }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px;
+    margin-bottom: 20px;
+  }
+
+  .panel h2 {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 17px;
+    margin-bottom: 6px;
+  }
+  .panel .sub {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 18px;
+  }
+
+  /* ─── DROPZONE ─── */
+  #dropzone {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 40px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .2s, background .2s;
+  }
+  #dropzone:hover, #dropzone.dragover { border-color: var(--accent); background: var(--surface2); }
+  #dropzone:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  #dropzone .icon { font-size: 28px; margin-bottom: 10px; color: var(--text-muted); }
+  #dropzone .main-text { font-size: 13px; margin-bottom: 4px; }
+  #dropzone .sub-text { font-size: 11px; color: var(--text-muted); }
+  #fileInput { display: none; }
+
+  .privacy-note {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 10px;
+    text-align: center;
+  }
+
+  #imgPreviewWrap { display: none; margin-top: 16px; text-align: center; }
+  #imgPreviewWrap img { max-width: 100%; max-height: 220px; border-radius: var(--radius); }
+
+  .palette-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 12px;
+    margin-top: 18px;
+  }
+  .swatch {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .swatch .chip { height: 60px; }
+  .swatch .info { padding: 8px 10px; }
+  .swatch .hex {
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    background: none;
+    border: none;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    padding: 0;
+    margin-bottom: 6px;
+  }
+  .swatch .hex:hover { color: var(--accent2); }
+  .swatch .btn-row { display: flex; gap: 6px; }
+  .swatch .btn-row button {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 10px;
+    padding: 5px 4px;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  .swatch .btn-row button:hover { border-color: var(--accent2); color: var(--accent2); }
+
+  .copied-toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--accent);
+    color: #000;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 10px 18px;
+    border-radius: 100px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s;
+    z-index: 10;
+  }
+  .copied-toast.show { opacity: 1; }
+
+  /* ─── コントラストチェッカー ─── */
+  .contrast-inputs {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 14px;
+    align-items: end;
+    margin-bottom: 20px;
+  }
+  @media (max-width: 560px) { .contrast-inputs { grid-template-columns: 1fr; } }
+
+  .color-field .label {
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    display: block;
+  }
+  .color-field .row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .color-field input[type="color"] {
+    width: 44px;
+    height: 38px;
+    padding: 2px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .color-field input[type="text"] {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    padding: 9px 11px;
+    border-radius: var(--radius);
+    outline: none;
+  }
+  .color-field input:focus { border-color: var(--accent); }
+
+  .swap-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    width: 38px;
+    height: 38px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-size: 16px;
+  }
+  .swap-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+
+  .sample-box {
+    border-radius: var(--radius);
+    padding: 28px 20px;
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  .sample-box .big { font-size: 26px; font-weight: 700; margin-bottom: 8px; }
+  .sample-box .small { font-size: 13px; }
+
+  .ratio-banner {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+  .ratio-banner .num { font-size: 34px; font-weight: 700; color: var(--accent2); font-family: 'DM Mono', monospace; }
+  .ratio-banner .label { font-size: 12px; color: var(--text-muted); }
+
+  .wcag-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  @media (max-width: 480px) { .wcag-grid { grid-template-columns: 1fr; } }
+  .wcag-badge {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    font-size: 12px;
+  }
+  .wcag-badge .status { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 100px; }
+  .wcag-badge .status.pass { background: #10231d; color: var(--green); }
+  .wcag-badge .status.fail { background: #2a1418; color: var(--red); }
+
+  .ad-slot {
+    display: none;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 11px;
+    letter-spacing: 1px;
+    margin: 28px 0;
+  }
+
+  .explainer { margin-top: 40px; }
+  .explainer h2 {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 18px;
+    margin: 32px 0 12px;
+    color: var(--accent2);
+  }
+  .explainer h2:first-child { margin-top: 0; }
+  .explainer p, .explainer li { font-size: 13px; color: var(--text-muted); margin-bottom: 10px; }
+  .explainer ul { padding-left: 20px; }
+
+  footer {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-muted);
+    padding: 24px;
+    border-top: 1px solid var(--border);
+  }
+  footer a { color: var(--text-muted); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">カラー<span>パレット</span>&コントラスト</div>
+  <span class="badge">BETA</span>
+  <p>配色抽出とWCAGコントラスト判定をブラウザ内だけで</p>
+</header>
+
+<div class="wrap">
+
+  <div class="panel">
+    <h2>画像から配色を抽出</h2>
+    <div class="sub">画像内でよく使われている色を自動で抽出します。</div>
+
+    <div id="dropzone" role="button" tabindex="0" aria-label="画像を選択(クリックまたはEnterキー)">
+      <div class="icon">＋</div>
+      <div class="main-text">クリックして画像を選択、またはドラッグ&ドロップ</div>
+      <div class="sub-text">JPEG / PNG / WebP に対応</div>
+      <input type="file" id="fileInput" accept="image/*">
+    </div>
+    <div class="privacy-note">画像はサーバーに送信されず、ブラウザ内だけで処理されます。</div>
+
+    <div id="imgPreviewWrap">
+      <img id="imgPreview" alt="アップロード画像プレビュー">
+    </div>
+
+    <div class="palette-grid" id="paletteGrid"></div>
+  </div>
+
+  <div class="panel">
+    <h2>コントラストチェッカー(WCAG)</h2>
+    <div class="sub">前景色・背景色のコントラスト比を計算し、WCAG AA/AAA基準に適合するか判定します。上のパレットから「文字色に使う」「背景色に使う」で反映することもできます。</div>
+
+    <div class="contrast-inputs">
+      <div class="color-field">
+        <label class="label" for="fgHex">文字色(前景)</label>
+        <div class="row">
+          <input type="color" id="fgPicker" value="#e8e6e1">
+          <input type="text" id="fgHex" value="#e8e6e1">
+        </div>
+      </div>
+      <button type="button" class="swap-btn" id="swapBtn" title="色を入れ替え">⇄</button>
+      <div class="color-field">
+        <label class="label" for="bgHex">背景色</label>
+        <div class="row">
+          <input type="color" id="bgPicker" value="#17171a">
+          <input type="text" id="bgHex" value="#17171a">
+        </div>
+      </div>
+    </div>
+
+    <div class="sample-box" id="sampleBox">
+      <div class="big">サンプルテキスト Aa</div>
+      <div class="small">この配色で本文がどう見えるかのプレビューです。The quick brown fox.</div>
+    </div>
+
+    <div class="ratio-banner">
+      <div class="num" id="ratioValue">1.00</div>
+      <div class="label">: 1<br>コントラスト比</div>
+    </div>
+
+    <div class="wcag-grid">
+      <div class="wcag-badge"><span>AA・通常文字(4.5:1以上)</span><span class="status" id="badgeAaNormal">-</span></div>
+      <div class="wcag-badge"><span>AA・大きな文字(3:1以上)</span><span class="status" id="badgeAaLarge">-</span></div>
+      <div class="wcag-badge"><span>AAA・通常文字(7:1以上)</span><span class="status" id="badgeAaaNormal">-</span></div>
+      <div class="wcag-badge"><span>AAA・大きな文字(4.5:1以上)</span><span class="status" id="badgeAaaLarge">-</span></div>
+    </div>
+  </div>
+
+  <div class="ad-slot">広告枠(Google AdSense設置予定)</div>
+
+  <div class="explainer">
+    <h2>WCAGコントラスト基準とは?</h2>
+    <p>Web Content Accessibility Guidelines(WCAG)が定める、文字と背景の見やすさの基準です。「大きな文字」は18pt(約24px)以上、または太字14pt(約18.5px)以上が目安です。AA基準は一般的な達成目標、AAAはより厳しい基準です。</p>
+
+    <h2>配色抽出の仕組み</h2>
+    <p>アップロードした画像を縮小してピクセルごとの色を集計し、近い色同士をまとめたうえで出現頻度が高い色を上位6色抽出しています。外部APIやライブラリは使わず、Canvas APIだけで完結しています。</p>
+
+    <h2>あわせて使いたいツール</h2>
+    <p>アイキャッチ画像のサイズ調整には<a href="../image-compressor/">画像圧縮・リサイズツール</a>もどうぞ。</p>
+  </div>
+</div>
+
+<div class="copied-toast" id="copiedToast">コピーしました</div>
+
+<footer>
+  抽出される色は画像の縮小サンプリングによる近似値です。厳密な色指定が必要な場合はデザインツールでスポイト確認してください。 &middot; <a href="../">webtools トップへ</a>
+</footer>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+
+  /* ═══ 画像から配色抽出 ═══ */
+  const dropzone = $('dropzone');
+  const fileInput = $('fileInput');
+  const imgPreviewWrap = $('imgPreviewWrap');
+  const imgPreview = $('imgPreview');
+  const paletteGrid = $('paletteGrid');
+
+  dropzone.addEventListener('click', () => fileInput.click());
+  dropzone.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); }
+  });
+  dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
+  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+  dropzone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropzone.classList.remove('dragover');
+    if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+  });
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files[0]) handleFile(fileInput.files[0]);
+  });
+
+  let objectUrl = null;
+
+  function handleFile(file) {
+    if (!file.type.startsWith('image/')) return;
+    if (objectUrl) { URL.revokeObjectURL(objectUrl); objectUrl = null; }
+    objectUrl = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      imgPreview.src = objectUrl;
+      imgPreviewWrap.style.display = '';
+      extractPalette(img);
+    };
+    img.src = objectUrl;
+  }
+
+  function extractPalette(img) {
+    const MAX_DIM = 150;
+    const scale = Math.min(1, MAX_DIM / Math.max(img.naturalWidth, img.naturalHeight));
+    const w = Math.max(1, Math.round(img.naturalWidth * scale));
+    const h = Math.max(1, Math.round(img.naturalHeight * scale));
+
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, w, h);
+    const data = ctx.getImageData(0, 0, w, h).data;
+
+    // 近い色をまとめるため、各チャンネルを8段階(32刻み)に量子化してバケット集計する
+    const buckets = new Map();
+    for (let i = 0; i < data.length; i += 4) {
+      const a = data[i + 3];
+      if (a < 128) continue; // 透過ピクセルは除外
+      const r = data[i], g = data[i + 1], b = data[i + 2];
+      const key = ((r >> 5) << 10) | ((g >> 5) << 5) | (b >> 5);
+      let bucket = buckets.get(key);
+      if (!bucket) { bucket = { r: 0, g: 0, b: 0, count: 0 }; buckets.set(key, bucket); }
+      bucket.r += r; bucket.g += g; bucket.b += b; bucket.count += 1;
+    }
+
+    const sorted = Array.from(buckets.values()).sort((a, b) => b.count - a.count).slice(0, 6);
+    const palette = sorted.map(bucket => {
+      const r = Math.round(bucket.r / bucket.count);
+      const g = Math.round(bucket.g / bucket.count);
+      const b = Math.round(bucket.b / bucket.count);
+      return rgbToHex(r, g, b);
+    });
+
+    renderPalette(palette);
+  }
+
+  function renderPalette(colors) {
+    if (colors.length === 0) {
+      paletteGrid.innerHTML = '<div style="grid-column:1/-1; color:var(--text-muted); font-size:12px;">色を抽出できませんでした。別の画像でお試しください。</div>';
+      return;
+    }
+    paletteGrid.innerHTML = colors.map(hex => `
+      <div class="swatch">
+        <div class="chip" style="background:${hex};"></div>
+        <div class="info">
+          <button type="button" class="hex" data-hex="${hex}">${hex}</button>
+          <div class="btn-row">
+            <button type="button" data-use="fg" data-hex="${hex}">文字色に使う</button>
+            <button type="button" data-use="bg" data-hex="${hex}">背景色に使う</button>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  paletteGrid.addEventListener('click', (e) => {
+    const hexBtn = e.target.closest('.hex');
+    if (hexBtn) { copyToClipboard(hexBtn.dataset.hex); return; }
+    const useBtn = e.target.closest('[data-use]');
+    if (useBtn) {
+      const hex = useBtn.dataset.hex;
+      if (useBtn.dataset.use === 'fg') setColor('fg', hex);
+      else setColor('bg', hex);
+      document.querySelector('.panel:nth-of-type(2)').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  });
+
+  function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+      const toast = $('copiedToast');
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 1200);
+    }).catch(() => {});
+  }
+
+  function rgbToHex(r, g, b) {
+    return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
+  }
+
+  /* ═══ コントラストチェッカー ═══ */
+  function parseHex(str) {
+    if (!str) return null;
+    let s = str.trim().replace(/^#/, '');
+    if (/^[0-9a-fA-F]{3}$/.test(s)) {
+      s = s.split('').map(c => c + c).join('');
+    }
+    if (!/^[0-9a-fA-F]{6}$/.test(s)) return null;
+    return {
+      r: parseInt(s.slice(0, 2), 16),
+      g: parseInt(s.slice(2, 4), 16),
+      b: parseInt(s.slice(4, 6), 16),
+    };
+  }
+
+  function relLuminance({ r, g, b }) {
+    const chan = (v) => {
+      v /= 255;
+      return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    };
+    return 0.2126 * chan(r) + 0.7152 * chan(g) + 0.0722 * chan(b);
+  }
+
+  function contrastRatio(rgbA, rgbB) {
+    const L1 = relLuminance(rgbA);
+    const L2 = relLuminance(rgbB);
+    const lighter = Math.max(L1, L2);
+    const darker = Math.min(L1, L2);
+    return (lighter + 0.05) / (darker + 0.05);
+  }
+
+  function setColor(which, hex) {
+    const rgb = parseHex(hex);
+    if (!rgb) return;
+    const normalized = rgbToHex(rgb.r, rgb.g, rgb.b);
+    if (which === 'fg') { $('fgHex').value = normalized; $('fgPicker').value = normalized; }
+    else { $('bgHex').value = normalized; $('bgPicker').value = normalized; }
+    updateContrast();
+  }
+
+  function updateContrast() {
+    const fgRgb = parseHex($('fgHex').value);
+    const bgRgb = parseHex($('bgHex').value);
+    if (!fgRgb || !bgRgb) return;
+
+    $('sampleBox').style.color = rgbToHex(fgRgb.r, fgRgb.g, fgRgb.b);
+    $('sampleBox').style.background = rgbToHex(bgRgb.r, bgRgb.g, bgRgb.b);
+
+    const ratio = contrastRatio(fgRgb, bgRgb);
+    $('ratioValue').textContent = ratio.toFixed(2);
+
+    setBadge('badgeAaNormal', ratio >= 4.5);
+    setBadge('badgeAaLarge', ratio >= 3);
+    setBadge('badgeAaaNormal', ratio >= 7);
+    setBadge('badgeAaaLarge', ratio >= 4.5);
+  }
+
+  function setBadge(id, pass) {
+    const el = $(id);
+    el.textContent = pass ? '合格' : '不合格';
+    el.className = 'status ' + (pass ? 'pass' : 'fail');
+  }
+
+  $('fgPicker').addEventListener('input', () => { $('fgHex').value = $('fgPicker').value; updateContrast(); });
+  $('bgPicker').addEventListener('input', () => { $('bgHex').value = $('bgPicker').value; updateContrast(); });
+  $('fgHex').addEventListener('input', () => {
+    const rgb = parseHex($('fgHex').value);
+    if (rgb) $('fgPicker').value = rgbToHex(rgb.r, rgb.g, rgb.b);
+    updateContrast();
+  });
+  $('bgHex').addEventListener('input', () => {
+    const rgb = parseHex($('bgHex').value);
+    if (rgb) $('bgPicker').value = rgbToHex(rgb.r, rgb.g, rgb.b);
+    updateContrast();
+  });
+
+  $('swapBtn').addEventListener('click', () => {
+    const fg = $('fgHex').value;
+    const bg = $('bgHex').value;
+    $('fgHex').value = bg;
+    $('bgHex').value = fg;
+    const fgRgb = parseHex(bg);
+    const bgRgb = parseHex(fg);
+    if (fgRgb) $('fgPicker').value = rgbToHex(fgRgb.r, fgRgb.g, fgRgb.b);
+    if (bgRgb) $('bgPicker').value = rgbToHex(bgRgb.r, bgRgb.g, bgRgb.b);
+    updateContrast();
+  });
+
+  updateContrast();
+</script>
+
+</body>
+</html>

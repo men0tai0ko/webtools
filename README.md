@@ -12,6 +12,8 @@
 - [画像圧縮・リサイズツール](https://men0tai0ko.github.io/webtools/image-compressor/)([ソース](image-compressor/)) — 画像をブラウザ内(Canvas API)だけで圧縮・リサイズ。サーバー送信なし、外部API不使用
 - [WAVマスタリングスタジオ](https://men0tai0ko.github.io/webtools/mastering-studio/)([ソース](mastering-studio/)) — EQ・マルチバンドコンプ・ステレオ幅調整・ITU-R BS.1770本格LUFS正規化をWeb Audio APIだけで実装。WAV/MP3(lamejs)で書き出し可能
 - [見積書・請求書作成ツール](https://men0tai0ko.github.io/webtools/invoice-generator/)([ソース](invoice-generator/)) — 発行者・請求先・品目・消費税・振込先を入力して見積書/請求書を作成し、`window.print()`でPDF保存(外部PDFライブラリ不使用、発行者情報のみlocalStorageに保存)
+- [QRコード生成ツール](https://men0tai0ko.github.io/webtools/qr-generator/)([ソース](qr-generator/)) — テキスト/URL・Wi-Fi・メール・電話番号のQRコードを生成し、サイズ・誤り訂正レベル・配色を調整してPNGでダウンロード(`qrcode-generator`ライブラリをローカル同梱)
+- [カラーパレット&コントラストチェッカー](https://men0tai0ko.github.io/webtools/color-tools/)([ソース](color-tools/)) — 画像から主要な配色をCanvas APIで自動抽出し、WCAG AA/AAA基準のコントラスト比を判定(外部API・ライブラリ不使用)
 
 ## 今後の追加候補(未実装)
 
@@ -28,3 +30,5 @@
 - `freelance-tax-calculator/index.html` の2割特例は2026年9月30日までの経過措置です。期限を過ぎたら該当箇所の表示・計算ロジックを見直してください。
 - `mastering-studio/` は他ツールと異なり単一HTML構成ではなく、MP3エンコーダ`lame.min.js`(lamejs、MITライセンス、npm経由で取得)を同フォルダに同梱しています。クロスオーバー周波数(200Hz/2.5kHz)やコンプの閾値・レシオのマッピング係数は`index.html`内の`buildProcessingChain`にハードコードされています。
 - `invoice-generator/` はPDF生成にjsPDF等のライブラリを使わず、`window.print()` + `@media print`で「印刷してPDFとして保存」させる方式を採用(日本語フォント埋め込み問題を回避するための意図的な設計判断)。混合税率(8%/10%が混在する請求書)には対応していない点に注意。
+- `qr-generator/` は`qrcode-generator`(kazuhikoarase、MIT、npm経由で取得)の`qrcode.js`+`qrcode_UTF8.js`を同梱。日本語等マルチバイト文字を含めるには`qrcode_UTF8.js`の読み込みが必須(`qrcode.stringToBytes`をUTF-8版に上書きする仕組み)。QRコードの描画は`isDark()`/`getModuleCount()`から自前でcanvasに描画しており(ライブラリ付属の`renderTo2dContext`は配色固定のため使っていない)、クワイエットゾーンは4モジュール固定。
+- `color-tools/` の配色抽出は外部ライブラリを使わず、画像を最大150px程度に縮小してから各チャンネルを8段階に量子化してバケット集計し、出現頻度上位6色を抽出する自前ロジック(`extractPalette`関数)。コントラスト比はWCAG 2.xの相対輝度計算式をそのまま実装。
