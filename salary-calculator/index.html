@@ -334,6 +334,7 @@
         <thead><tr><th>項目</th><th class="num">年額</th><th class="num">月額換算</th></tr></thead>
         <tbody id="breakdownBody"></tbody>
       </table>
+      <div class="hint" id="depNote" style="margin-top:14px; display:none; color:var(--accent2);"></div>
       <div class="hint" style="margin-top:14px;">
         税率・保険料率は2026年度(令和8年度)の全国平均値をもとにした概算です。健康保険料率は都道府県により異なり、住民税は前年の所得をもとに翌年課税されるため、入社1年目は発生しないことがあります。正確な金額は源泉徴収票や自治体窓口、勤務先の給与規定でご確認ください。
       </div>
@@ -379,6 +380,7 @@
   const grossMonthlyEl = document.getElementById('grossMonthly');
   const stackBarEl = document.getElementById('stackBar');
   const breakdownBodyEl = document.getElementById('breakdownBody');
+  const depNoteEl = document.getElementById('depNote');
 
   function fmtYen(n) {
     return '¥' + Math.round(n).toLocaleString();
@@ -433,6 +435,7 @@
     const employmentIncome = Math.max(0, gross - empDeduction);
     const basic = basicDeduction(employmentIncome);
     const dependentDeductionIncomeTax = dependents * 380000;
+    const taxableIncomeBeforeDependents = employmentIncome - socialTotal - basic;
     const taxableIncome = Math.max(0, Math.floor((employmentIncome - socialTotal - basic - dependentDeductionIncomeTax) / 1000) * 1000);
     const baseTax = incomeTax(taxableIncome);
     const reconstructionTax = baseTax * 0.021;
@@ -441,10 +444,14 @@
     // 住民税(概算)
     const residentBasic = 430000;
     const dependentDeductionResident = dependents * 330000;
+    const residentTaxableBeforeDependents = employmentIncome - socialTotal - residentBasic;
     const residentTaxable = Math.max(0, Math.floor((employmentIncome - socialTotal - residentBasic - dependentDeductionResident) / 1000) * 1000);
     const residentIncomeTax = residentTaxable * 0.10;
     const residentPerCapita = 5000;
     const residentTaxTotal = residentIncomeTax + residentPerCapita;
+
+    const incomeTaxUnaffectedByDependents = taxableIncomeBeforeDependents <= 0;
+    const residentIncomeUnaffectedByDependents = residentTaxableBeforeDependents <= 0;
 
     const totalDeductionAmount = socialTotal + incomeTaxTotal + residentTaxTotal;
     const netAnnual = Math.max(0, gross - totalDeductionAmount);
@@ -465,6 +472,17 @@
       const pct = gross > 0 ? Math.max((s.value / gross) * 100, 0) : 0;
       return `<div class="stack-seg ${s.cls}" style="width:${pct}%"></div>`;
     }).join('');
+
+    if (incomeTaxUnaffectedByDependents && residentIncomeUnaffectedByDependents) {
+      depNoteEl.style.display = 'block';
+      depNoteEl.textContent = '※ 現在の所得水準では、社会保険料控除・基礎控除だけで課税所得がすでにゼロになっています。扶養家族の人数を増やしても所得税・住民税(所得割)にはこれ以上反映されません(住民税の均等割¥5,000のみ人数によらず固定でかかります)。';
+    } else if (incomeTaxUnaffectedByDependents) {
+      depNoteEl.style.display = 'block';
+      depNoteEl.textContent = '※ 所得税はすでに課税所得ゼロのため、扶養家族の人数を増やしても所得税額はこれ以上変わりません(住民税には引き続き反映されます)。';
+    } else {
+      depNoteEl.style.display = 'none';
+      depNoteEl.textContent = '';
+    }
 
     breakdownBodyEl.innerHTML = `
       <tr><td>額面年収</td><td class="num">${fmtYen(gross)}</td><td class="num">${fmtYen(gross / 12)}</td></tr>
