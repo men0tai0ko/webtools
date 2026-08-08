@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>マウス感度コンバーター | FPSゲーム間のcm/360変換</title>
+<meta name="description" content="Valorant・CS2・Apex Legends・Overwatch 2・Fortniteなど主要FPSゲーム間でマウス感度を相互変換。cm/360(物理的な振り向き距離)を基準に、DPIと感度から他ゲームの同じ感覚の設定値を計算します。">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700;900&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #0e0e10;
+    --surface: #17171a;
+    --surface2: #1f1f24;
+    --border: #2a2a32;
+    --accent: #ff6b35;
+    --accent2: #ffd166;
+    --text: #e8e6e1;
+    --text-muted: #9c9aa2;
+    --green: #06d6a0;
+    --red: #e0455b;
+    --radius: 8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Mono', monospace;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  a { color: var(--accent2); }
+
+  header {
+    padding: 20px 28px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--surface);
+    flex-wrap: wrap;
+  }
+
+  .logo {
+    font-family: 'Noto Serif JP', serif;
+    font-weight: 900;
+    font-size: 22px;
+    letter-spacing: -0.5px;
+  }
+  .logo span { color: var(--accent); }
+
+  .badge {
+    font-size: 10px;
+    background: var(--accent);
+    color: #000;
+    padding: 2px 8px;
+    border-radius: 100px;
+    font-weight: 500;
+    letter-spacing: 1px;
+  }
+
+  header p {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-left: auto;
+  }
+
+  .wrap {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 28px 20px 60px;
+  }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px;
+    margin-bottom: 20px;
+  }
+
+  .panel h2 {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 17px;
+    margin-bottom: 6px;
+  }
+  .panel .sub {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 18px;
+  }
+
+  .field { margin-bottom: 16px; }
+  .field:last-child { margin-bottom: 0; }
+  .label {
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    display: block;
+  }
+
+  .input-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  @media (max-width: 480px) { .input-row { grid-template-columns: 1fr; } }
+
+  input[type="text"], input[type="number"], select {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 15px;
+    padding: 10px 12px;
+    border-radius: var(--radius);
+    outline: none;
+  }
+  input:focus, select:focus { border-color: var(--accent); }
+  select { cursor: pointer; }
+
+  .result-box {
+    display: flex;
+    gap: 16px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-top: 18px;
+    flex-wrap: wrap;
+  }
+  .result-item { flex: 1; min-width: 120px; }
+  .result-item .r-label { font-size: 10px; color: var(--text-muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px; }
+  .result-item .r-value { font-size: 20px; color: var(--accent2); font-weight: 500; }
+  .result-item .r-value span { font-size: 12px; color: var(--text-muted); font-weight: 400; }
+
+  table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+  thead th {
+    text-align: left;
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 8px 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  tbody td {
+    padding: 10px 6px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    vertical-align: middle;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr.is-source { background: rgba(255,107,53,0.08); }
+  .game-name { font-family: 'Noto Serif JP', serif; font-size: 13px; }
+  .row-dpi {
+    width: 76px;
+    padding: 6px 8px;
+    font-size: 12px;
+  }
+  .sens-value {
+    font-size: 15px;
+    color: var(--accent2);
+    font-weight: 500;
+  }
+  .copy-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    padding: 6px 10px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .copy-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+
+  .col-actions { text-align: right; }
+
+  .ad-slot {
+    display: none;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 11px;
+    letter-spacing: 1px;
+    margin: 28px 0;
+  }
+
+  .explainer { margin-top: 40px; }
+  .explainer h2 {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 18px;
+    margin: 32px 0 12px;
+    color: var(--accent2);
+  }
+  .explainer h2:first-child { margin-top: 0; }
+  .explainer p, .explainer li { font-size: 13px; color: var(--text-muted); margin-bottom: 10px; }
+  .explainer ul { padding-left: 20px; }
+  .explainer code {
+    background: var(--surface2);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+  }
+
+  .privacy-note {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 14px;
+    line-height: 1.6;
+  }
+
+  .copied-toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--accent);
+    color: #000;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 10px 18px;
+    border-radius: 100px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s;
+    z-index: 10;
+  }
+  .copied-toast.show { opacity: 1; }
+
+  footer {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-muted);
+    padding: 24px;
+    border-top: 1px solid var(--border);
+  }
+  footer a { color: var(--text-muted); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">マウス<span>感度</span>コンバーター</div>
+  <span class="badge">BETA</span>
+  <p>cm/360基準でFPSゲーム間の感度を相互変換</p>
+</header>
+
+<div class="wrap">
+
+  <div class="panel">
+    <h2>感度を入力</h2>
+    <div class="sub">DPIと、基準にしたいゲームの感度を入力してください。物理的な振り向き距離(cm/360)が同じになるよう、他ゲームの感度を自動計算します。</div>
+
+    <div class="input-row">
+      <div class="field">
+        <label class="label" for="dpiInput">マウスDPI</label>
+        <input type="number" id="dpiInput" value="800" min="50" max="30000" step="1">
+      </div>
+      <div class="field">
+        <label class="label" for="gameSelect">基準ゲーム</label>
+        <select id="gameSelect"></select>
+      </div>
+    </div>
+
+    <div class="field" style="margin-top:16px;">
+      <label class="label" for="sensInput">基準ゲームの感度</label>
+      <input type="number" id="sensInput" value="0.4" min="0.0001" step="0.0001">
+    </div>
+
+    <div class="result-box">
+      <div class="result-item">
+        <div class="r-label">cm / 360°</div>
+        <div class="r-value" id="cm360Value">-</div>
+      </div>
+      <div class="result-item">
+        <div class="r-label">inch / 360°</div>
+        <div class="r-value" id="inch360Value">-</div>
+      </div>
+      <div class="result-item">
+        <div class="r-label">eDPI</div>
+        <div class="r-value" id="edpiValue">-</div>
+      </div>
+    </div>
+
+    <div class="privacy-note">入力したDPIと基準ゲームはこの端末のブラウザ内(localStorage)にのみ保存され、送信はされません。</div>
+  </div>
+
+  <div class="panel">
+    <h2>各ゲームの換算感度</h2>
+    <div class="sub">同じcm/360になるよう換算した、各ゲームでの感度です。DPIはゲームごとに個別入力(初期値は上のDPIと共通)できます。</div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>ゲーム</th>
+          <th>DPI</th>
+          <th>感度</th>
+          <th class="col-actions"></th>
+        </tr>
+      </thead>
+      <tbody id="gameTableBody"></tbody>
+    </table>
+  </div>
+
+  <div class="ad-slot">広告枠(Google AdSense設置予定)</div>
+
+  <div class="explainer">
+    <h2>cm/360とは</h2>
+    <p>マウスを物理的に何cm動かせば、ゲーム内で視点が360度(1回転)するかを表す数値です。ゲームごとに感度の「1」が指す実際の振り向き量(内部的な"yaw"係数)が異なるため、感度の数値そのものを他ゲームにコピーしても同じ感覚にはなりません。cm/360を基準にすることで、複数のゲームを行き来しても手の動きの感覚を統一できます。</p>
+
+    <h2>計算式</h2>
+    <p><code>cm/360 = 2.54 × 360 ÷ (DPI × 感度 × yaw)</code></p>
+    <p>他ゲームへの換算は <code>変換後の感度 = 元の感度 × (元DPI × 元yaw) ÷ (先DPI × 先yaw)</code> で行っています。</p>
+
+    <h2>ご利用にあたっての注意</h2>
+    <ul>
+      <li>各ゲームのyaw係数は、複数の海外コミュニティ製感度コンバーターの公開値を照合して採用した、広く使われている参考値です。公式発表値ではなく、ゲームのアップデートで内部仕様が変わった場合は実際の数値とズレる可能性があります。</li>
+      <li>視野角(FOV)設定やエイムアシストの有無はcm/360の計算には影響しません。ADS(照準)時の感度倍率など、ゲーム独自の追加設定は考慮していません。</li>
+      <li>換算値はあくまで出発点です。実際にプレイしながら微調整することをおすすめします。</li>
+    </ul>
+  </div>
+</div>
+
+<div class="copied-toast" id="copiedToast">コピーしました</div>
+
+<footer>
+  換算値は複数の公開情報源を照合した参考値であり、公式の保証はありません。実際のプレイ感覚に応じて調整してください。 &middot; <a href="../">webtools トップへ</a>
+</footer>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+
+  // yaw係数(感度1・DPI1あたりの1カウントの回転角度[度])
+  // 出典: 複数の公開感度コンバーターサイトの値を照合し、一致した値のみ採用
+  const GAMES = [
+    { id: 'cs2',      name: 'CS2 / CS:GO',            yaw: 0.022 },
+    { id: 'valorant', name: 'Valorant',                yaw: 0.07 },
+    { id: 'apex',     name: 'Apex Legends',            yaw: 0.022 },
+    { id: 'ow2',      name: 'Overwatch 2',             yaw: 0.0066 },
+    { id: 'fortnite', name: 'Fortnite',                yaw: 0.5555 },
+    { id: 'cod',      name: 'Call of Duty (Warzone/MW)', yaw: 0.0066 },
+    { id: 'r6',       name: 'Rainbow Six Siege',       yaw: 0.00572958 },
+    { id: 'pubg',     name: 'PUBG: BATTLEGROUNDS',     yaw: 0.022 },
+    { id: 'bf2042',   name: 'Battlefield 2042',        yaw: 0.0022 },
+    { id: 'quake',    name: 'Quake Champions',         yaw: 0.022 },
+    { id: 'halo',     name: 'Halo Infinite',           yaw: 0.0125 },
+    { id: 'tf2',      name: 'Team Fortress 2',         yaw: 0.022 },
+    { id: 'tarkov',   name: 'Escape from Tarkov',      yaw: 0.022 },
+  ];
+
+  const STORAGE_KEY = 'webtools_sensConverter_state';
+  const rowDpiOverrides = {}; // gameId -> DPI (ユーザーが個別編集した行だけ保持)
+
+  function loadState() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch { return null; }
+  }
+  function saveState() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        dpi: $('dpiInput').value,
+        gameId: $('gameSelect').value,
+        sens: $('sensInput').value,
+      }));
+    } catch {}
+  }
+
+  function formatSens(v) {
+    if (!Number.isFinite(v)) return '-';
+    if (v >= 10) return v.toFixed(2);
+    if (v >= 1) return v.toFixed(3);
+    return v.toFixed(4);
+  }
+
+  function buildGameOptions() {
+    const sel = $('gameSelect');
+    sel.innerHTML = GAMES.map(g => `<option value="${g.id}">${g.name}</option>`).join('');
+  }
+
+  function buildTableRows() {
+    const body = $('gameTableBody');
+    body.innerHTML = GAMES.map(g => `
+      <tr data-game="${g.id}">
+        <td class="game-name">${g.name}</td>
+        <td><input type="number" class="row-dpi" data-game="${g.id}" min="50" max="30000" step="1"></td>
+        <td class="sens-value" data-game="${g.id}">-</td>
+        <td class="col-actions"><button type="button" class="copy-btn" data-game="${g.id}">コピー</button></td>
+      </tr>
+    `).join('');
+
+    body.querySelectorAll('.row-dpi').forEach(input => {
+      input.addEventListener('input', () => {
+        const gid = input.dataset.game;
+        const v = parseFloat(input.value);
+        if (Number.isFinite(v) && v > 0) {
+          rowDpiOverrides[gid] = v;
+        } else {
+          delete rowDpiOverrides[gid];
+        }
+        recompute();
+      });
+    });
+
+    body.querySelectorAll('.copy-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const gid = btn.dataset.game;
+        const valEl = body.querySelector(`.sens-value[data-game="${gid}"]`);
+        const text = valEl ? valEl.textContent : '';
+        if (!text || text === '-') return;
+        navigator.clipboard.writeText(text).then(() => {
+          const toast = $('copiedToast');
+          toast.classList.add('show');
+          setTimeout(() => toast.classList.remove('show'), 1200);
+        }).catch(() => {});
+      });
+    });
+  }
+
+  function recompute() {
+    const dpi = Number.isFinite(parseFloat($('dpiInput').value)) && parseFloat($('dpiInput').value) > 0
+      ? parseFloat($('dpiInput').value) : 800;
+    const sourceId = $('gameSelect').value;
+    const sourceGame = GAMES.find(g => g.id === sourceId) || GAMES[0];
+    const sens = Number.isFinite(parseFloat($('sensInput').value)) && parseFloat($('sensInput').value) > 0
+      ? parseFloat($('sensInput').value) : 0;
+
+    // cm/360 = 2.54 * 360 / (dpi * sens * yaw)
+    const cm360 = sens > 0 ? (2.54 * 360) / (dpi * sens * sourceGame.yaw) : NaN;
+    const inch360 = sens > 0 ? cm360 / 2.54 : NaN;
+    const edpi = dpi * sens;
+
+    $('cm360Value').innerHTML = Number.isFinite(cm360) ? `${cm360.toFixed(2)}<span> cm</span>` : '-';
+    $('inch360Value').innerHTML = Number.isFinite(inch360) ? `${inch360.toFixed(2)}<span> in</span>` : '-';
+    $('edpiValue').textContent = Number.isFinite(edpi) ? edpi.toFixed(0) : '-';
+
+    const body = $('gameTableBody');
+    GAMES.forEach(g => {
+      const rowDpiInput = body.querySelector(`.row-dpi[data-game="${g.id}"]`);
+      const rowDpi = rowDpiOverrides[g.id] || dpi;
+      if (document.activeElement !== rowDpiInput) rowDpiInput.value = rowDpi;
+
+      const valEl = body.querySelector(`.sens-value[data-game="${g.id}"]`);
+      const tr = body.querySelector(`tr[data-game="${g.id}"]`);
+
+      if (g.id === sourceId) {
+        tr.classList.add('is-source');
+        valEl.textContent = sens > 0 ? formatSens(sens) : '-';
+        return;
+      }
+      tr.classList.remove('is-source');
+
+      if (!(sens > 0)) { valEl.textContent = '-'; return; }
+      // targetSens = sourceSens * (sourceDPI * sourceYaw) / (targetDPI * targetYaw)
+      const targetSens = sens * (dpi * sourceGame.yaw) / (rowDpi * g.yaw);
+      valEl.textContent = formatSens(targetSens);
+    });
+
+    saveState();
+  }
+
+  function init() {
+    buildGameOptions();
+    buildTableRows();
+
+    const saved = loadState();
+    if (saved) {
+      if (saved.dpi) $('dpiInput').value = saved.dpi;
+      if (saved.gameId && GAMES.some(g => g.id === saved.gameId)) $('gameSelect').value = saved.gameId;
+      if (saved.sens) $('sensInput').value = saved.sens;
+    }
+
+    $('dpiInput').addEventListener('input', () => {
+      // グローバルDPI変更時は、個別編集されていない行のみ追従させる(すでに触った行は維持)
+      recompute();
+    });
+    $('gameSelect').addEventListener('change', recompute);
+    $('sensInput').addEventListener('input', recompute);
+
+    recompute();
+  }
+
+  init();
+</script>
+
+</body>
+</html>

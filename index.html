@@ -48,15 +48,77 @@
   .logo span { color: var(--accent); }
 
   .wrap {
-    max-width: 800px;
+    max-width: 880px;
     margin: 0 auto;
     padding: 40px 20px 60px;
   }
 
-  .wrap > p {
+  .wrap > p.intro {
     color: var(--text-muted);
     font-size: 13px;
+    margin-bottom: 20px;
+  }
+
+  /* ─── カテゴリ絞り込みタブ ─── */
+  .category-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 36px;
+  }
+  .cat-tab {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    padding: 6px 14px;
+    cursor: pointer;
+    transition: border-color .2s, color .2s, background .2s;
+  }
+  .cat-tab:hover { border-color: var(--accent2); color: var(--accent2); }
+  .cat-tab.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #000;
+    font-weight: 500;
+  }
+
+  /* ─── カテゴリブロック ─── */
+  .category {
     margin-bottom: 28px;
+    scroll-margin-top: 20px;
+  }
+  .category:last-child { margin-bottom: 0; }
+  .category.is-hidden { display: none; }
+
+  .category-header {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .category-title {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 17px;
+  }
+  .category-title span { color: var(--accent); }
+  .category-count {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  /* 2列グリッドで縦の伸びを抑える。カード自体の大きさ・タップ領域は変えない */
+  .tool-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+  @media (max-width: 560px) {
+    .tool-grid { grid-template-columns: 1fr; }
   }
 
   .tool-card {
@@ -64,10 +126,9 @@
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 20px;
+    padding: 18px;
     text-decoration: none;
     color: var(--text);
-    margin-bottom: 14px;
     transition: border-color .2s, background .2s;
   }
   .tool-card:hover { border-color: var(--accent2); background: var(--surface2); }
@@ -100,75 +161,162 @@
 </header>
 
 <div class="wrap">
-  <p>ちょっとした作業を楽にする、無料の簡易Webツール集です。</p>
+  <p class="intro">ちょっとした作業を楽にする、無料の簡易Webツール集です。</p>
 
-  <a class="tool-card" href="ai-cost-calculator/">
-    <div class="tool-title">AI<span>コスト</span>計算機</div>
-    <div class="tool-desc">Claude・GPT・GeminiのAPI料金をトークン数から概算計算。モデル別に1回あたり・月間コストを比較できます。</div>
-  </a>
+  <nav class="category-nav" role="tablist" aria-label="カテゴリで絞り込み">
+    <button type="button" class="cat-tab active" data-target="all" aria-pressed="true">すべて</button>
+    <button type="button" class="cat-tab" data-target="cat-ai" aria-pressed="false">AI活用</button>
+    <button type="button" class="cat-tab" data-target="cat-money" aria-pressed="false">お金・税金</button>
+    <button type="button" class="cat-tab" data-target="cat-writing" aria-pressed="false">文章・note執筆</button>
+    <button type="button" class="cat-tab" data-target="cat-media" aria-pressed="false">画像・音声制作</button>
+    <button type="button" class="cat-tab" data-target="cat-security" aria-pressed="false">セキュリティ</button>
+    <button type="button" class="cat-tab" data-target="cat-game" aria-pressed="false">ゲーム</button>
+  </nav>
 
-  <a class="tool-card" href="salary-calculator/">
-    <div class="tool-title">給与<span>手取り</span>計算機</div>
-    <div class="tool-desc">額面年収を入力するだけで、社会保険料・所得税・住民税を引いた手取り年収・月収を概算計算できます。</div>
-  </a>
+  <section class="category" id="cat-ai">
+    <div class="category-header">
+      <div class="category-title">AI<span>活用</span></div>
+      <div class="category-count">3</div>
+    </div>
 
-  <a class="tool-card" href="side-hustle-quiz/">
-    <div class="tool-title">AI<span>副業</span>タイプ診断</div>
-    <div class="tool-desc">5つの質問に答えるだけで、あなたに向いているAI活用副業のタイプがわかります。所要時間1分。</div>
-  </a>
+    <div class="tool-grid">
+      <a class="tool-card" href="ai-cost-calculator/">
+        <div class="tool-title">AI<span>コスト</span>計算機</div>
+        <div class="tool-desc">Claude・GPT・GeminiのAPI料金をトークン数から概算計算。モデル別に1回あたり・月間コストを比較できます。</div>
+      </a>
 
-  <a class="tool-card" href="prompt-library/">
-    <div class="tool-title">AI<span>プロンプト</span>テンプレ集</div>
-    <div class="tool-desc">記事作成・仕事効率化・SNS発信ですぐ使えるプロンプトを、カテゴリ・キーワードで検索してワンクリックでコピーできます。</div>
-  </a>
+      <a class="tool-card" href="side-hustle-quiz/">
+        <div class="tool-title">AI<span>副業</span>タイプ診断</div>
+        <div class="tool-desc">5つの質問に答えるだけで、あなたに向いているAI活用副業のタイプがわかります。所要時間1分。</div>
+      </a>
 
-  <a class="tool-card" href="freelance-tax-calculator/">
-    <div class="tool-title">フリーランス<span>消費税</span>計算機</div>
-    <div class="tool-desc">請求書の税込・税抜計算と、インボイス登録した場合の消費税納税額(2割特例・簡易課税)を概算比較できます。</div>
-  </a>
+      <a class="tool-card" href="prompt-library/">
+        <div class="tool-title">AI<span>プロンプト</span>テンプレ集</div>
+        <div class="tool-desc">記事作成・仕事効率化・SNS発信ですぐ使えるプロンプトを、カテゴリ・キーワードで検索してワンクリックでコピーできます。</div>
+      </a>
+    </div>
+  </section>
 
-  <a class="tool-card" href="image-compressor/">
-    <div class="tool-title">画像<span>圧縮</span>ツール</div>
-    <div class="tool-desc">画像をアップロードするだけでブラウザ内だけで圧縮・リサイズ。サーバーに画像は送信されません。</div>
-  </a>
+  <section class="category" id="cat-money">
+    <div class="category-header">
+      <div class="category-title">お金<span>・税金</span></div>
+      <div class="category-count">3</div>
+    </div>
 
-  <a class="tool-card" href="mastering-studio/">
-    <div class="tool-title">WAV<span>マスタリング</span>スタジオ</div>
-    <div class="tool-desc">EQ・マルチバンドコンプ・ステレオ幅調整・本格LUFSラウドネス正規化をブラウザ内だけで。WAV/MP3で書き出せます。</div>
-  </a>
+    <div class="tool-grid">
+      <a class="tool-card" href="salary-calculator/">
+        <div class="tool-title">給与<span>手取り</span>計算機</div>
+        <div class="tool-desc">額面年収を入力するだけで、社会保険料・所得税・住民税を引いた手取り年収・月収を概算計算できます。</div>
+      </a>
 
-  <a class="tool-card" href="invoice-generator/">
-    <div class="tool-title">見積書<span>・請求書</span>作成ツール</div>
-    <div class="tool-desc">品目・消費税・振込先を入力するだけで見積書/請求書を作成し、印刷してそのままPDF保存できます。</div>
-  </a>
+      <a class="tool-card" href="freelance-tax-calculator/">
+        <div class="tool-title">フリーランス<span>消費税</span>計算機</div>
+        <div class="tool-desc">請求書の税込・税抜計算と、インボイス登録した場合の消費税納税額(2割特例・簡易課税)を概算比較できます。</div>
+      </a>
 
-  <a class="tool-card" href="qr-generator/">
-    <div class="tool-title">QR<span>コード</span>生成ツール</div>
-    <div class="tool-desc">URL・テキスト・Wi-Fi・メール・電話番号のQRコードを作成。サイズや配色を調整してPNGでダウンロードできます。</div>
-  </a>
+      <a class="tool-card" href="invoice-generator/">
+        <div class="tool-title">見積書<span>・請求書</span>作成ツール</div>
+        <div class="tool-desc">品目・消費税・振込先を入力するだけで見積書/請求書を作成し、印刷してそのままPDF保存できます。</div>
+      </a>
+    </div>
+  </section>
 
-  <a class="tool-card" href="color-tools/">
-    <div class="tool-title">カラーパレット<span>&コントラスト</span>チェッカー</div>
-    <div class="tool-desc">画像から主要な配色を自動抽出し、WCAG基準のコントラスト比を判定。抽出した色をそのままチェッカーに使えます。</div>
-  </a>
+  <section class="category" id="cat-writing">
+    <div class="category-header">
+      <div class="category-title">文章<span>・note執筆</span></div>
+      <div class="category-count">2</div>
+    </div>
 
-  <a class="tool-card" href="note-writing-tools/">
-    <div class="tool-title">文字数<span>&原稿用紙換算</span>Markdownプレビュー</div>
-    <div class="tool-desc">文字数・原稿用紙換算・読了時間の目安を自動計算し、Markdownをリアルタイムでプレビュー。note等の執筆に。</div>
-  </a>
+    <div class="tool-grid">
+      <a class="tool-card" href="note-writing-tools/">
+        <div class="tool-title">文字数<span>&原稿用紙換算</span>Markdownプレビュー</div>
+        <div class="tool-desc">文字数・原稿用紙換算・読了時間の目安を自動計算し、Markdownをリアルタイムでプレビュー。note等の執筆に。</div>
+      </a>
 
-  <a class="tool-card" href="password-generator/">
-    <div class="tool-title">パスワード<span>生成</span>&強度チェッカー</div>
-    <div class="tool-desc">桁数・文字種を指定して安全なパスワードを生成。既存パスワードの強度もエントロピーベースで判定できます。</div>
-  </a>
+      <a class="tool-card" href="text-self-check/">
+        <div class="tool-title">文章<span>セルフチェック</span>&類似度比較</div>
+        <div class="tool-desc">紋切り型の接続表現・結び表現・文末の偏りをチェックし、2つの文章のn-gram類似度も比較できます。</div>
+      </a>
+    </div>
+  </section>
 
-  <a class="tool-card" href="text-self-check/">
-    <div class="tool-title">文章<span>セルフチェック</span>&類似度比較</div>
-    <div class="tool-desc">紋切り型の接続表現・結び表現・文末の偏りをチェックし、2つの文章のn-gram類似度も比較できます。</div>
-  </a>
+  <section class="category" id="cat-media">
+    <div class="category-header">
+      <div class="category-title">画像<span>・音声制作</span></div>
+      <div class="category-count">4</div>
+    </div>
+
+    <div class="tool-grid">
+      <a class="tool-card" href="image-compressor/">
+        <div class="tool-title">画像<span>圧縮</span>ツール</div>
+        <div class="tool-desc">画像をアップロードするだけでブラウザ内だけで圧縮・リサイズ。サーバーに画像は送信されません。</div>
+      </a>
+
+      <a class="tool-card" href="color-tools/">
+        <div class="tool-title">カラーパレット<span>&コントラスト</span>チェッカー</div>
+        <div class="tool-desc">画像から主要な配色を自動抽出し、WCAG基準のコントラスト比を判定。抽出した色をそのままチェッカーに使えます。</div>
+      </a>
+
+      <a class="tool-card" href="qr-generator/">
+        <div class="tool-title">QR<span>コード</span>生成ツール</div>
+        <div class="tool-desc">URL・テキスト・Wi-Fi・メール・電話番号のQRコードを作成。サイズや配色を調整してPNGでダウンロードできます。</div>
+      </a>
+
+      <a class="tool-card" href="mastering-studio/">
+        <div class="tool-title">WAV<span>マスタリング</span>スタジオ</div>
+        <div class="tool-desc">EQ・マルチバンドコンプ・ステレオ幅調整・本格LUFSラウドネス正規化をブラウザ内だけで。WAV/MP3で書き出せます。</div>
+      </a>
+    </div>
+  </section>
+
+  <section class="category" id="cat-security">
+    <div class="category-header">
+      <div class="category-title">セキュリ<span>ティ</span></div>
+      <div class="category-count">1</div>
+    </div>
+
+    <div class="tool-grid">
+      <a class="tool-card" href="password-generator/">
+        <div class="tool-title">パスワード<span>生成</span>&強度チェッカー</div>
+        <div class="tool-desc">桁数・文字種を指定して安全なパスワードを生成。既存パスワードの強度もエントロピーベースで判定できます。</div>
+      </a>
+    </div>
+  </section>
+
+  <section class="category" id="cat-game">
+    <div class="category-header">
+      <div class="category-title">ゲー<span>ム</span></div>
+      <div class="category-count">1</div>
+    </div>
+
+    <div class="tool-grid">
+      <a class="tool-card" href="sensitivity-converter/">
+        <div class="tool-title">マウス<span>感度</span>コンバーター</div>
+        <div class="tool-desc">Valorant・CS2・Apex Legendsなど主要FPSゲーム間でマウス感度を相互変換。cm/360基準で同じ振り向き感覚を保てます。</div>
+      </a>
+    </div>
+  </section>
 </div>
 
 <footer>&copy; webtools</footer>
+
+<script>
+  const tabs = document.querySelectorAll('.cat-tab');
+  const categories = document.querySelectorAll('.category');
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const target = tab.dataset.target;
+      tabs.forEach(t => {
+        t.classList.toggle('active', t === tab);
+        t.setAttribute('aria-pressed', t === tab ? 'true' : 'false');
+      });
+      categories.forEach(cat => {
+        cat.classList.toggle('is-hidden', target !== 'all' && cat.id !== target);
+      });
+    });
+  });
+</script>
 
 </body>
 </html>
