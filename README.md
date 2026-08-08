@@ -11,6 +11,7 @@
 - [フリーランス消費税・請求書計算機](https://men0tai0ko.github.io/webtools/freelance-tax-calculator/)([ソース](freelance-tax-calculator/)) — 請求書の税込・税抜計算と、インボイス登録した場合の消費税納税額(2割特例・簡易課税)を概算比較
 - [画像圧縮・リサイズツール](https://men0tai0ko.github.io/webtools/image-compressor/)([ソース](image-compressor/)) — 画像をブラウザ内(Canvas API)だけで圧縮・リサイズ。サーバー送信なし、外部API不使用
 - [WAVマスタリングスタジオ](https://men0tai0ko.github.io/webtools/mastering-studio/)([ソース](mastering-studio/)) — EQ・マルチバンドコンプ・ステレオ幅調整・ITU-R BS.1770本格LUFS正規化をWeb Audio APIだけで実装。WAV/MP3(lamejs)で書き出し可能
+- [見積書・請求書作成ツール](https://men0tai0ko.github.io/webtools/invoice-generator/)([ソース](invoice-generator/)) — 発行者・請求先・品目・消費税・振込先を入力して見積書/請求書を作成し、`window.print()`でPDF保存(外部PDFライブラリ不使用、発行者情報のみlocalStorageに保存)
 
 ## 今後の追加候補(未実装)
 
@@ -26,3 +27,4 @@
 - `prompt-library/index.html` 内の `prompts` 配列にプロンプトを追加すると、検索・カテゴリフィルタに自動で反映されます。
 - `freelance-tax-calculator/index.html` の2割特例は2026年9月30日までの経過措置です。期限を過ぎたら該当箇所の表示・計算ロジックを見直してください。
 - `mastering-studio/` は他ツールと異なり単一HTML構成ではなく、MP3エンコーダ`lame.min.js`(lamejs、MITライセンス、npm経由で取得)を同フォルダに同梱しています。クロスオーバー周波数(200Hz/2.5kHz)やコンプの閾値・レシオのマッピング係数は`index.html`内の`buildProcessingChain`にハードコードされています。
+- `invoice-generator/` はPDF生成にjsPDF等のライブラリを使わず、`window.print()` + `@media print`で「印刷してPDFとして保存」させる方式を採用(日本語フォント埋め込み問題を回避するための意図的な設計判断)。混合税率(8%/10%が混在する請求書)には対応していない点に注意。
