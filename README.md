@@ -2,6 +2,8 @@
 
 無料で使える簡易Webツール集(静的HTML、ビルド不要)。GitHub Pagesで公開しています。
 
+[トップページ(全ツール一覧)](https://men0tai0ko.github.io/webtools/)([ソース](index.html))
+
 ## 収録ツール
 
 - [AIコスト計算機](https://men0tai0ko.github.io/webtools/ai-cost-calculator/)([ソース](ai-cost-calculator/)) — Claude・GPT・GeminiのAPI料金をトークン数から概算計算し、モデル別に1回あたり・月間コストを比較
