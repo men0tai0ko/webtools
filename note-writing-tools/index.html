@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>文字数カウント・原稿用紙換算&Markdownプレビュー | note執筆支援ツール</title>
+<meta name="description" content="文章の文字数・原稿用紙換算・読了時間の目安を自動計算し、Markdownをリアルタイムでプレビューできる無料ツール。note等の記事執筆に。">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700;900&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #0e0e10;
+    --surface: #17171a;
+    --surface2: #1f1f24;
+    --border: #2a2a32;
+    --accent: #ff6b35;
+    --accent2: #ffd166;
+    --text: #e8e6e1;
+    --text-muted: #9c9aa2;
+    --radius: 8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Mono', monospace;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  a { color: var(--accent2); }
+
+  header {
+    padding: 20px 28px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--surface);
+    flex-wrap: wrap;
+  }
+
+  .logo {
+    font-family: 'Noto Serif JP', serif;
+    font-weight: 900;
+    font-size: 22px;
+    letter-spacing: -0.5px;
+  }
+  .logo span { color: var(--accent); }
+
+  .badge {
+    font-size: 10px;
+    background: var(--accent);
+    color: #000;
+    padding: 2px 8px;
+    border-radius: 100px;
+    font-weight: 500;
+    letter-spacing: 1px;
+  }
+
+  header p {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-left: auto;
+  }
+
+  .wrap {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 28px 20px 60px;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(340px, 1fr) minmax(340px, 1fr);
+    gap: 24px;
+    align-items: start;
+  }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+
+  .preview-col { position: sticky; top: 20px; }
+  @media (max-width: 900px) { .preview-col { position: static; } }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px;
+    margin-bottom: 16px;
+  }
+
+  .panel h2 {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 15px;
+    margin-bottom: 4px;
+  }
+  .panel .sub {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 14px;
+  }
+
+  #sourceInput {
+    width: 100%;
+    min-height: 380px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 13.5px;
+    padding: 14px;
+    border-radius: var(--radius);
+    outline: none;
+    resize: vertical;
+    line-height: 1.7;
+  }
+  #sourceInput:focus { border-color: var(--accent); }
+
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+  .field .label {
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    display: block;
+  }
+  .field select {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    padding: 8px 10px;
+    border-radius: var(--radius);
+    outline: none;
+  }
+
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 16px;
+  }
+  @media (max-width: 480px) { .stat-grid { grid-template-columns: repeat(2, 1fr); } }
+  .stat {
+    background: var(--surface2);
+    border-radius: var(--radius);
+    padding: 12px;
+    text-align: center;
+  }
+  .stat .n { font-size: 18px; font-weight: 500; color: var(--accent2); font-family: 'DM Mono', monospace; }
+  .stat .l { font-size: 10px; color: var(--text-muted); margin-top: 4px; }
+
+  /* ─── プレビュー(読み物として見せる領域) ─── */
+  .preview-sheet {
+    background: #ffffff;
+    color: #1a1a1a;
+    border-radius: var(--radius);
+    padding: 32px 30px;
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif;
+    font-size: 15px;
+    line-height: 1.9;
+    min-height: 420px;
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+  .preview-sheet.empty { color: #999; font-size: 13px; }
+  .preview-sheet h1, .preview-sheet h2, .preview-sheet h3,
+  .preview-sheet h4, .preview-sheet h5, .preview-sheet h6 {
+    font-weight: 700;
+    margin: 22px 0 10px;
+    line-height: 1.5;
+  }
+  .preview-sheet h1:first-child, .preview-sheet h2:first-child { margin-top: 0; }
+  .preview-sheet h1 { font-size: 24px; border-bottom: 2px solid #eee; padding-bottom: 8px; }
+  .preview-sheet h2 { font-size: 20px; border-bottom: 1px solid #eee; padding-bottom: 6px; }
+  .preview-sheet h3 { font-size: 17px; }
+  .preview-sheet h4, .preview-sheet h5, .preview-sheet h6 { font-size: 15px; }
+  .preview-sheet p { margin: 0 0 14px; }
+  .preview-sheet strong { font-weight: 700; }
+  .preview-sheet em { font-style: italic; }
+  .preview-sheet code {
+    background: #f2f2f2;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.88em;
+  }
+  .preview-sheet pre {
+    background: #1e1e22;
+    color: #e8e6e1;
+    padding: 14px 16px;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 0 0 14px;
+  }
+  .preview-sheet pre code { background: none; padding: 0; color: inherit; }
+  .preview-sheet blockquote {
+    border-left: 3px solid #ccc;
+    color: #555;
+    padding: 2px 0 2px 16px;
+    margin: 0 0 14px;
+  }
+  .preview-sheet ul, .preview-sheet ol { margin: 0 0 14px; padding-left: 26px; }
+  .preview-sheet li { margin-bottom: 4px; }
+  .preview-sheet hr { border: none; border-top: 1px solid #ddd; margin: 24px 0; }
+  .preview-sheet a { color: #d1590f; }
+
+  .ad-slot {
+    display: none;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 11px;
+    letter-spacing: 1px;
+    margin: 28px 0;
+  }
+
+  .explainer { margin-top: 40px; max-width: 860px; margin-left: auto; margin-right: auto; }
+  .explainer h2 {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 18px;
+    margin: 32px 0 12px;
+    color: var(--accent2);
+  }
+  .explainer h2:first-child { margin-top: 0; }
+  .explainer p, .explainer li { font-size: 13px; color: var(--text-muted); margin-bottom: 10px; }
+  .explainer ul { padding-left: 20px; }
+
+  footer {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-muted);
+    padding: 24px;
+    border-top: 1px solid var(--border);
+  }
+  footer a { color: var(--text-muted); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">文字数<span>&</span>Markdown</div>
+  <span class="badge">BETA</span>
+  <p>原稿用紙換算・読了時間の目安・Markdownプレビューをまとめて</p>
+</header>
+
+<div class="wrap">
+
+  <div class="layout">
+    <div class="form-col">
+      <div class="panel">
+        <h2>本文を入力</h2>
+        <div class="sub">Markdown記法(見出し・太字・リンク等)にも対応しています。入力内容は保存・送信されません。</div>
+        <textarea id="sourceInput" placeholder="# 見出し
+
+本文をここに入力してください。**太字**や*斜体*、[リンク](https://example.com)、- 箇条書き などのMarkdown記法が使えます。"></textarea>
+
+        <div class="row2">
+          <div class="field">
+            <label class="label" for="pageSizeSelect">原稿用紙の換算単位</label>
+            <select id="pageSizeSelect">
+              <option value="400" selected>400字詰め</option>
+              <option value="200">200字詰め</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="label" for="speedSelect">読了速度の目安</label>
+            <select id="speedSelect">
+              <option value="400">ゆっくり(400字/分)</option>
+              <option value="500" selected>標準(500字/分)</option>
+              <option value="600">速い(600字/分)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="stat-grid">
+          <div class="stat"><div class="n" id="statAll">0</div><div class="l">文字数(全て)</div></div>
+          <div class="stat"><div class="n" id="statNoSpace">0</div><div class="l">空白・改行を除く</div></div>
+          <div class="stat"><div class="n" id="statPages">0枚</div><div class="l">原稿用紙換算</div></div>
+          <div class="stat"><div class="n" id="statReadTime">0分</div><div class="l">読了時間の目安</div></div>
+          <div class="stat"><div class="n" id="statHeadings">0</div><div class="l">見出し数</div></div>
+          <div class="stat"><div class="n" id="statLinks">0</div><div class="l">リンク数</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="preview-col">
+      <div class="panel">
+        <h2>プレビュー</h2>
+        <div class="sub">Markdownを変換した見た目の確認用です(実際の投稿先の表示とは異なる場合があります)。</div>
+        <div class="preview-sheet empty" id="previewSheet">ここにプレビューが表示されます</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ad-slot">広告枠(Google AdSense設置予定)</div>
+
+  <div class="explainer">
+    <h2>対応しているMarkdown記法</h2>
+    <ul>
+      <li>見出し: <code># 見出し1</code> 〜 <code>###### 見出し6</code></li>
+      <li>強調: <code>**太字**</code> / <code>*斜体*</code> または <code>_斜体_</code></li>
+      <li>リスト: <code>- 項目</code>(箇条書き) / <code>1. 項目</code>(番号付き)</li>
+      <li>引用: <code>&gt; 引用文</code></li>
+      <li>コード: <code>`インラインコード`</code> / <code>```で囲んだコードブロック```</code></li>
+      <li>リンク: <code>[表示テキスト](URL)</code></li>
+      <li>区切り線: <code>---</code></li>
+    </ul>
+    <p>簡易実装のため、ネストしたリストやテーブル記法には対応していません。投稿前には実際の投稿先(noteなど)のプレビューも必ず確認してください。</p>
+
+    <h2>原稿用紙換算・読了時間について</h2>
+    <p>原稿用紙換算は文字数(全角・半角問わず1文字として計算)を指定の字数で割って切り上げた枚数です。読了時間は日本語の平均的な黙読速度をもとにした目安であり、文章の難易度や読者によって実際の時間は変わります。</p>
+  </div>
+</div>
+
+<footer>
+  文字数・換算値はあくまで目安です。原稿の正式な文字数規定がある場合は提出先のルールに従ってください。 &middot; <a href="../">webtools トップへ</a>
+</footer>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+
+  function escapeHtml(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function renderInline(text) {
+    // コードスパンを先に退避(中の*や[]がMarkdown記法として誤変換されないようにする)
+    const stash = [];
+    text = text.replace(/`([^`]+?)`/g, (m, code) => {
+      stash.push(`<code>${code}</code>`);
+      return ' ' + (stash.length - 1) + ' ';
+    });
+
+    text = text.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (m, label, url) => {
+      const safeUrl = /^(https?:|mailto:|\/)/i.test(url) ? url : '#';
+      return `<a href="${safeUrl}" target="_blank" rel="noopener">${label}</a>`;
+    });
+    text = text.replace(/\*\*([^*]+?)\*\*/g, '<strong>$1</strong>');
+    text = text.replace(/\*([^*]+?)\*/g, '<em>$1</em>');
+    text = text.replace(/_([^_]+?)_/g, '<em>$1</em>');
+
+    text = text.replace(/ (\d+) /g, (m, i) => stash[Number(i)]);
+    return text;
+  }
+
+  function renderMarkdown(src) {
+    const lines = src.replace(/\r\n/g, '\n').split('\n');
+    const out = [];
+    let i = 0;
+    let listType = null; // 'ul' | 'ol' | null
+
+    function closeList() {
+      if (listType) { out.push(`</${listType}>`); listType = null; }
+    }
+
+    while (i < lines.length) {
+      const line = lines[i];
+
+      // コードブロック
+      if (/^```/.test(line)) {
+        closeList();
+        const codeLines = [];
+        i++;
+        while (i < lines.length && !/^```/.test(lines[i])) { codeLines.push(lines[i]); i++; }
+        i++; // 閉じ```をスキップ
+        out.push(`<pre><code>${escapeHtml(codeLines.join('\n'))}</code></pre>`);
+        continue;
+      }
+
+      // 見出し
+      const heading = line.match(/^(#{1,6})\s+(.*)$/);
+      if (heading) {
+        closeList();
+        const level = heading[1].length;
+        out.push(`<h${level}>${renderInline(escapeHtml(heading[2]))}</h${level}>`);
+        i++;
+        continue;
+      }
+
+      // 区切り線
+      if (/^(-{3,}|\*{3,}|_{3,})\s*$/.test(line)) {
+        closeList();
+        out.push('<hr>');
+        i++;
+        continue;
+      }
+
+      // 引用(連続行をまとめる)
+      if (/^>\s?/.test(line)) {
+        closeList();
+        const quoteLines = [];
+        while (i < lines.length && /^>\s?/.test(lines[i])) {
+          quoteLines.push(lines[i].replace(/^>\s?/, ''));
+          i++;
+        }
+        out.push(`<blockquote>${renderInline(escapeHtml(quoteLines.join('\n'))).replace(/\n/g, '<br>')}</blockquote>`);
+        continue;
+      }
+
+      // 箇条書き
+      const ulItem = line.match(/^[-*]\s+(.*)$/);
+      if (ulItem) {
+        if (listType !== 'ul') { closeList(); out.push('<ul>'); listType = 'ul'; }
+        out.push(`<li>${renderInline(escapeHtml(ulItem[1]))}</li>`);
+        i++;
+        continue;
+      }
+      const olItem = line.match(/^\d+\.\s+(.*)$/);
+      if (olItem) {
+        if (listType !== 'ol') { closeList(); out.push('<ol>'); listType = 'ol'; }
+        out.push(`<li>${renderInline(escapeHtml(olItem[1]))}</li>`);
+        i++;
+        continue;
+      }
+
+      closeList();
+
+      // 空行
+      if (/^\s*$/.test(line)) { i++; continue; }
+
+      // 段落(空行まで連続行を1つの<p>にまとめ、改行は<br>にする)
+      const paraLines = [line];
+      i++;
+      while (i < lines.length && !/^\s*$/.test(lines[i]) &&
+             !/^```/.test(lines[i]) && !/^#{1,6}\s/.test(lines[i]) &&
+             !/^[-*]\s+/.test(lines[i]) && !/^\d+\.\s+/.test(lines[i]) &&
+             !/^>\s?/.test(lines[i]) && !/^(-{3,}|\*{3,}|_{3,})\s*$/.test(lines[i])) {
+        paraLines.push(lines[i]);
+        i++;
+      }
+      out.push(`<p>${renderInline(escapeHtml(paraLines.join('\n'))).replace(/\n/g, '<br>')}</p>`);
+    }
+    closeList();
+    return out.join('\n');
+  }
+
+  function countChars(text) {
+    return Array.from(text).length;
+  }
+
+  function update() {
+    const src = $('sourceInput').value;
+    const all = countChars(src);
+    const noSpace = countChars(src.replace(/\s/g, ''));
+    const pageSize = parseInt($('pageSizeSelect').value, 10);
+    const pages = all === 0 ? 0 : Math.ceil(all / pageSize);
+    const speed = parseInt($('speedSelect').value, 10);
+    const minutes = all === 0 ? 0 : Math.max(1, Math.ceil(all / speed));
+    const headingCount = (src.match(/^#{1,6}\s+.+$/gm) || []).length;
+    const linkCount = (src.match(/\[[^\]]+\]\([^)\s]+\)/g) || []).length;
+
+    $('statAll').textContent = all.toLocaleString();
+    $('statNoSpace').textContent = noSpace.toLocaleString();
+    $('statPages').textContent = pages.toLocaleString() + '枚';
+    $('statReadTime').textContent = '約' + minutes + '分';
+    $('statHeadings').textContent = headingCount;
+    $('statLinks').textContent = linkCount;
+
+    const preview = $('previewSheet');
+    if (!src.trim()) {
+      preview.classList.add('empty');
+      preview.innerHTML = 'ここにプレビューが表示されます';
+    } else {
+      preview.classList.remove('empty');
+      preview.innerHTML = renderMarkdown(src);
+    }
+  }
+
+  $('sourceInput').addEventListener('input', update);
+  $('pageSizeSelect').addEventListener('input', update);
+  $('speedSelect').addEventListener('input', update);
+
+  update();
+</script>
+
+</body>
+</html>

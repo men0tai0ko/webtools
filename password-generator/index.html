@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>パスワード生成&強度チェッカー | 無料・安全な乱数生成</title>
+<meta name="description" content="桁数・文字種を指定して安全なパスワードを生成し、既存パスワードの強度もチェックできる無料ツール。暗号学的に安全な乱数(Web Crypto API)を使用し、ブラウザ内だけで完結します。">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700;900&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #0e0e10;
+    --surface: #17171a;
+    --surface2: #1f1f24;
+    --border: #2a2a32;
+    --accent: #ff6b35;
+    --accent2: #ffd166;
+    --text: #e8e6e1;
+    --text-muted: #9c9aa2;
+    --green: #06d6a0;
+    --red: #e0455b;
+    --radius: 8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Mono', monospace;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  a { color: var(--accent2); }
+
+  header {
+    padding: 20px 28px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--surface);
+    flex-wrap: wrap;
+  }
+
+  .logo {
+    font-family: 'Noto Serif JP', serif;
+    font-weight: 900;
+    font-size: 22px;
+    letter-spacing: -0.5px;
+  }
+  .logo span { color: var(--accent); }
+
+  .badge {
+    font-size: 10px;
+    background: var(--accent);
+    color: #000;
+    padding: 2px 8px;
+    border-radius: 100px;
+    font-weight: 500;
+    letter-spacing: 1px;
+  }
+
+  header p {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-left: auto;
+  }
+
+  .wrap {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 28px 20px 60px;
+  }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px;
+    margin-bottom: 20px;
+  }
+
+  .panel h2 {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 17px;
+    margin-bottom: 6px;
+  }
+  .panel .sub {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 18px;
+  }
+
+  /* ─── 結果表示 ─── */
+  .result-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    margin-bottom: 16px;
+  }
+  .result-box .pw-text {
+    flex: 1;
+    font-family: 'DM Mono', monospace;
+    font-size: 18px;
+    letter-spacing: 1px;
+    word-break: break-all;
+    min-width: 0;
+  }
+  .result-box button {
+    flex-shrink: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    padding: 9px 12px;
+    border-radius: var(--radius);
+    cursor: pointer;
+  }
+  .result-box button:hover { border-color: var(--accent2); color: var(--accent2); }
+
+  .field { margin-bottom: 16px; }
+  .field:last-child { margin-bottom: 0; }
+  .label {
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    display: block;
+  }
+
+  .length-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .length-row input[type="range"] { flex: 1; accent-color: var(--accent); }
+  .length-row .len-val {
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--accent2);
+    min-width: 34px;
+    text-align: right;
+  }
+
+  .checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  @media (max-width: 420px) { .checkbox-grid { grid-template-columns: 1fr; } }
+  .checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text);
+  }
+  .checkbox-row input { width: 16px; height: 16px; }
+
+  .error-note {
+    font-size: 12px;
+    color: var(--red);
+    margin-top: 8px;
+    display: none;
+  }
+  .error-note.show { display: block; }
+
+  .generate-btn {
+    width: 100%;
+    background: var(--accent);
+    border: none;
+    color: #000;
+    font-family: 'DM Mono', monospace;
+    font-weight: 500;
+    font-size: 14px;
+    padding: 14px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    margin-top: 18px;
+  }
+  .generate-btn:hover { background: var(--accent2); }
+
+  /* ─── 強度チェッカー ─── */
+  .pw-input-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .pw-input-row input {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 15px;
+    padding: 10px 12px;
+    border-radius: var(--radius);
+    outline: none;
+  }
+  .pw-input-row input:focus { border-color: var(--accent); }
+  .pw-input-row button {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 0 14px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-size: 12px;
+  }
+
+  .meter-track {
+    height: 8px;
+    background: var(--surface2);
+    border-radius: 100px;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+  .meter-fill { height: 100%; border-radius: 100px; transition: width .2s, background .2s; }
+
+  .meter-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+  }
+  .meter-label .level { font-weight: 500; }
+
+  .warning-list { list-style: none; }
+  .warning-list li {
+    font-size: 12px;
+    color: var(--accent2);
+    background: #241a12;
+    border: 1px solid #4a3218;
+    border-radius: var(--radius);
+    padding: 8px 12px;
+    margin-bottom: 8px;
+  }
+
+  .privacy-note {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 14px;
+    line-height: 1.6;
+  }
+
+  .ad-slot {
+    display: none;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 11px;
+    letter-spacing: 1px;
+    margin: 28px 0;
+  }
+
+  .explainer { margin-top: 40px; }
+  .explainer h2 {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 18px;
+    margin: 32px 0 12px;
+    color: var(--accent2);
+  }
+  .explainer h2:first-child { margin-top: 0; }
+  .explainer p, .explainer li { font-size: 13px; color: var(--text-muted); margin-bottom: 10px; }
+  .explainer ul { padding-left: 20px; }
+
+  .copied-toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--accent);
+    color: #000;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 10px 18px;
+    border-radius: 100px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s;
+    z-index: 10;
+  }
+  .copied-toast.show { opacity: 1; }
+
+  footer {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-muted);
+    padding: 24px;
+    border-top: 1px solid var(--border);
+  }
+  footer a { color: var(--text-muted); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">パスワード<span>生成</span>&強度チェック</div>
+  <span class="badge">BETA</span>
+  <p>Web Crypto APIによる安全な乱数、ブラウザ内だけで完結</p>
+</header>
+
+<div class="wrap">
+
+  <div class="panel">
+    <h2>パスワード生成</h2>
+    <div class="sub">桁数・文字種を指定して、安全な乱数からパスワードを生成します。</div>
+
+    <div class="result-box">
+      <div class="pw-text" id="resultText">-</div>
+      <button type="button" id="copyBtn">コピー</button>
+      <button type="button" id="regenBtn">再生成</button>
+    </div>
+
+    <div class="meter-track"><div class="meter-fill" id="genMeterFill" style="width:0%; background:var(--border);"></div></div>
+    <div class="meter-label" style="margin-bottom:18px;">
+      <span>強度: <span class="level" id="genStrengthLevel">-</span></span>
+      <span id="genEntropyText">- bit相当</span>
+    </div>
+
+    <div class="field">
+      <label class="label" for="lengthRange">文字数</label>
+      <div class="length-row">
+        <input type="range" id="lengthRange" min="8" max="64" value="16">
+        <div class="len-val" id="lengthVal">16</div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="label">使用する文字種</label>
+      <div class="checkbox-grid">
+        <div class="checkbox-row"><input type="checkbox" id="useLower" checked><label for="useLower">小文字(abc)</label></div>
+        <div class="checkbox-row"><input type="checkbox" id="useUpper" checked><label for="useUpper">大文字(ABC)</label></div>
+        <div class="checkbox-row"><input type="checkbox" id="useDigit" checked><label for="useDigit">数字(123)</label></div>
+        <div class="checkbox-row"><input type="checkbox" id="useSymbol" checked><label for="useSymbol">記号(!@#)</label></div>
+      </div>
+      <div class="error-note" id="noCharsetError">少なくとも1つの文字種を選択してください。</div>
+    </div>
+
+    <div class="checkbox-row">
+      <input type="checkbox" id="excludeAmbiguous">
+      <label for="excludeAmbiguous">紛らわしい文字を除外する(0/O、1/l/I など)</label>
+    </div>
+
+    <div class="privacy-note">生成したパスワードはこの端末のブラウザ内だけで処理され、保存も送信もされません。</div>
+  </div>
+
+  <div class="panel">
+    <h2>強度チェッカー</h2>
+    <div class="sub">既存のパスワードを入力すると、推定エントロピーから強度を判定します。</div>
+
+    <div class="pw-input-row">
+      <input type="password" id="checkInput" placeholder="チェックしたいパスワードを入力">
+      <button type="button" id="toggleShowBtn">表示</button>
+    </div>
+
+    <div class="meter-track"><div class="meter-fill" id="meterFill" style="width:0%; background:var(--border);"></div></div>
+    <div class="meter-label">
+      <span>強度: <span class="level" id="strengthLevel">-</span></span>
+      <span id="entropyText">- bit相当</span>
+    </div>
+
+    <ul class="warning-list" id="warningList"></ul>
+
+    <div class="privacy-note">入力したパスワードはどこにも送信されません(ネットワーク通信を行わない、このページ内だけの計算です)。それでも実際に使用中の重要なパスワードの入力に抵抗がある場合は、似た文字構成のダミー文字列でお試しください。</div>
+  </div>
+
+  <div class="ad-slot">広告枠(Google AdSense設置予定)</div>
+
+  <div class="explainer">
+    <h2>安全性についての注意</h2>
+    <ul>
+      <li>パスワード生成には<code>Math.random()</code>ではなく、暗号学的に安全な乱数生成API(<code>crypto.getRandomValues</code>)を使用し、文字選択の偏り(剰余バイアス)が出ないよう実装しています。</li>
+      <li>強度チェックはエントロピー(理論的な組み合わせ数)からの概算であり、既知の漏えいパスワード一覧との突き合わせ(いわゆる「パスワード漏えいチェック」)は行っていません。外部APIやデータベースを使わないブラウザ完結ツールのため、その点はご了承ください。</li>
+      <li>同じパスワードを複数のサービスで使い回さない、重要なアカウントには二要素認証を設定する、といった対策もあわせて行うことをおすすめします。</li>
+    </ul>
+
+    <h2>強度の目安</h2>
+    <p>目安として、エントロピー60bit以上であれば一般的な用途では十分強力とされます。ただし文字数が短いパスワードは記号や大文字を含めても弱くなりやすいため、可能であれば16文字以上を推奨します。</p>
+  </div>
+</div>
+
+<div class="copied-toast" id="copiedToast">コピーしました</div>
+
+<footer>
+  本ツールはローカルで動作する簡易チェッカーです。重要なアカウントのセキュリティ設定については、各サービスの公式ガイドもあわせてご確認ください。 &middot; <a href="../">webtools トップへ</a>
+</footer>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+
+  const CHARSETS = {
+    lower: 'abcdefghijklmnopqrstuvwxyz',
+    upper: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+    digit: '0123456789',
+    symbol: '!@#$%^&*()-_=+[]{};:,.<>?',
+  };
+  const AMBIGUOUS = /[0O1lI]/g;
+
+  // 剰余バイアスを避け、[0, max) の範囲で一様な乱数インデックスを得る
+  function secureRandomIndex(max) {
+    const range = 0x100000000; // 2^32
+    const limit = range - (range % max);
+    let x;
+    do {
+      x = crypto.getRandomValues(new Uint32Array(1))[0];
+    } while (x >= limit);
+    return x % max;
+  }
+
+  function buildPassword(length, classKeys, excludeAmbiguous) {
+    const sets = classKeys
+      .map(k => excludeAmbiguous ? CHARSETS[k].replace(AMBIGUOUS, '') : CHARSETS[k])
+      .filter(s => s.length > 0);
+    const combined = sets.join('');
+    if (!combined || length < 1) return '';
+
+    // 各文字種から先に1文字ずつ確保してから残りを埋める方式。
+    // 「生成→欠けたクラスを上書き修正」だと、修正時に別のクラスの
+    // 唯一の文字を消してしまうことがあるため、この方式に変更した。
+    const chars = [];
+    const guaranteedCount = Math.min(sets.length, length);
+    for (let i = 0; i < guaranteedCount; i++) {
+      const set = sets[i];
+      chars.push(set[secureRandomIndex(set.length)]);
+    }
+    for (let i = chars.length; i < length; i++) {
+      chars.push(combined[secureRandomIndex(combined.length)]);
+    }
+    // Fisher-Yatesシャッフル(確保した文字が先頭に固まらないようにする)
+    for (let i = chars.length - 1; i > 0; i--) {
+      const j = secureRandomIndex(i + 1);
+      [chars[i], chars[j]] = [chars[j], chars[i]];
+    }
+    return chars.join('');
+  }
+
+  function selectedClassKeys() {
+    const keys = [];
+    if ($('useLower').checked) keys.push('lower');
+    if ($('useUpper').checked) keys.push('upper');
+    if ($('useDigit').checked) keys.push('digit');
+    if ($('useSymbol').checked) keys.push('symbol');
+    return keys;
+  }
+
+  function generate() {
+    const keys = selectedClassKeys();
+    const errorEl = $('noCharsetError');
+    if (keys.length === 0) {
+      errorEl.classList.add('show');
+      $('resultText').textContent = '-';
+      renderStrengthMeter('', $('genMeterFill'), $('genStrengthLevel'), $('genEntropyText'));
+      return;
+    }
+    errorEl.classList.remove('show');
+    const length = parseInt($('lengthRange').value, 10);
+    const pw = buildPassword(length, keys, $('excludeAmbiguous').checked);
+    $('resultText').textContent = pw;
+    renderStrengthMeter(pw, $('genMeterFill'), $('genStrengthLevel'), $('genEntropyText'));
+  }
+
+  $('lengthRange').addEventListener('input', () => {
+    $('lengthVal').textContent = $('lengthRange').value;
+    generate();
+  });
+  document.querySelectorAll('#useLower, #useUpper, #useDigit, #useSymbol, #excludeAmbiguous').forEach(el => {
+    el.addEventListener('change', generate);
+  });
+  $('regenBtn').addEventListener('click', generate);
+
+  $('copyBtn').addEventListener('click', () => {
+    const text = $('resultText').textContent;
+    if (!text || text === '-') return;
+    navigator.clipboard.writeText(text).then(() => {
+      const toast = $('copiedToast');
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 1200);
+    }).catch(() => {});
+  });
+
+  /* ═══ 強度チェッカー ═══ */
+  const COMMON_PASSWORDS = [
+    '123456', 'password', '123456789', '12345678', '12345', 'qwerty', 'abc123',
+    'password1', '111111', '123123', 'admin', 'letmein', 'welcome', 'monkey',
+    'iloveyou', '1q2w3e4r', '000000', '1234', 'sunshine', 'princess', 'football',
+    'baseball', 'dragon', 'qwertyuiop', 'passw0rd', 'trustno1',
+  ];
+
+  function estimateCharsetSize(pw) {
+    let size = 0;
+    if (/[a-z]/.test(pw)) size += 26;
+    if (/[A-Z]/.test(pw)) size += 26;
+    if (/[0-9]/.test(pw)) size += 10;
+    if (/[^a-zA-Z0-9]/.test(pw)) size += 32;
+    return size;
+  }
+
+  function estimateEntropy(pw) {
+    const size = estimateCharsetSize(pw);
+    if (size === 0 || pw.length === 0) return 0;
+    return pw.length * Math.log2(size);
+  }
+
+  function hasLongRepeat(pw) {
+    return /(.)\1{3,}/.test(pw); // 同じ文字が4回以上連続
+  }
+
+  function classifyStrength(bits) {
+    if (bits < 35) return { level: '非常に弱い', color: 'var(--red)', pct: 15 };
+    if (bits < 60) return { level: '弱い', color: '#ff9a4d', pct: 40 };
+    if (bits < 80) return { level: '普通', color: 'var(--accent2)', pct: 65 };
+    if (bits < 100) return { level: '強い', color: '#8fd96b', pct: 85 };
+    return { level: '非常に強い', color: 'var(--green)', pct: 100 };
+  }
+
+  function renderStrengthMeter(pw, fillEl, levelEl, entropyEl) {
+    if (!pw) {
+      fillEl.style.width = '0%';
+      fillEl.style.background = 'var(--border)';
+      levelEl.textContent = '-';
+      entropyEl.textContent = '- bit相当';
+      return;
+    }
+    const bits = estimateEntropy(pw);
+    const { level, color, pct } = classifyStrength(bits);
+    fillEl.style.width = pct + '%';
+    fillEl.style.background = color;
+    levelEl.textContent = level;
+    entropyEl.textContent = '約' + Math.round(bits) + ' bit相当';
+  }
+
+  function updateStrength() {
+    const pw = $('checkInput').value;
+    const warnings = [];
+
+    renderStrengthMeter(pw, $('meterFill'), $('strengthLevel'), $('entropyText'));
+
+    if (!pw) {
+      $('warningList').innerHTML = '';
+      return;
+    }
+
+    if (pw.length < 8) warnings.push('8文字未満です。可能であれば長くしましょう。');
+    if (COMMON_PASSWORDS.includes(pw.toLowerCase())) warnings.push('非常によく使われる単純なパスワードと一致しています。');
+    if (hasLongRepeat(pw)) warnings.push('同じ文字が連続しています。推測されやすくなります。');
+    if (estimateCharsetSize(pw) <= 26) warnings.push('文字の種類が少ないです。大文字・数字・記号を混ぜると強くなります。');
+
+    $('warningList').innerHTML = warnings.map(w => `<li>${w}</li>`).join('');
+  }
+
+  $('checkInput').addEventListener('input', updateStrength);
+  $('toggleShowBtn').addEventListener('click', () => {
+    const input = $('checkInput');
+    const showing = input.type === 'text';
+    input.type = showing ? 'password' : 'text';
+    $('toggleShowBtn').textContent = showing ? '表示' : '隠す';
+  });
+
+  generate();
+</script>
+
+</body>
+</html>
