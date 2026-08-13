@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>経済指標×ドル円反応分析ツール | 指標発表前後の値動きを可視化</title>
+<meta name="description" content="米雇用統計・米CPI・FOMC・日銀金融政策決定会合の発表前後で、ドル円がどう動いたかを過去100件のイベントで集計。平均変動幅・円高/円安の回数・個別イベント一覧を無料で確認できます。">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700;900&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #0e0e10;
+    --surface: #17171a;
+    --surface2: #1f1f24;
+    --border: #2a2a32;
+    --accent: #ff6b35;
+    --accent2: #ffd166;
+    --text: #e8e6e1;
+    --text-muted: #9c9aa2;
+    --green: #06d6a0;
+    --red: #e0455b;
+    --radius: 8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Mono', monospace;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  a { color: var(--accent2); }
+
+  header {
+    padding: 20px 28px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--surface);
+    flex-wrap: wrap;
+  }
+
+  .logo {
+    font-family: 'Noto Serif JP', serif;
+    font-weight: 900;
+    font-size: 20px;
+    letter-spacing: -0.5px;
+  }
+  .logo span { color: var(--accent); }
+
+  .badge {
+    font-size: 10px;
+    background: var(--accent);
+    color: #000;
+    padding: 2px 8px;
+    border-radius: 100px;
+    font-weight: 500;
+    letter-spacing: 1px;
+  }
+
+  header p {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-left: auto;
+  }
+
+  .wrap {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 28px 20px 60px;
+  }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px;
+    margin-bottom: 20px;
+  }
+
+  .panel h2 {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 17px;
+    margin-bottom: 6px;
+  }
+  .panel .sub {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 18px;
+  }
+
+  /* ─── 指標選択タブ ─── */
+  .indicator-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .ind-tab {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--text-muted);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    padding: 8px 16px;
+    cursor: pointer;
+    transition: border-color .2s, color .2s, background .2s;
+  }
+  .ind-tab:hover { border-color: var(--accent2); color: var(--accent2); }
+  .ind-tab.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #000;
+    font-weight: 500;
+  }
+
+  .status-line {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 12px;
+  }
+  .status-line.error { color: var(--red); }
+
+  /* ─── サマリー ─── */
+  .result-box {
+    display: flex;
+    gap: 16px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-top: 4px;
+    flex-wrap: wrap;
+  }
+  .result-item { flex: 1; min-width: 130px; }
+  .result-item .r-label { font-size: 10px; color: var(--text-muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px; }
+  .result-item .r-value { font-size: 19px; color: var(--accent2); font-weight: 500; }
+  .result-item .r-value.up { color: var(--red); }
+  .result-item .r-value.down { color: var(--green); }
+  .result-item .r-value span { font-size: 11px; color: var(--text-muted); font-weight: 400; }
+
+  .primary-note {
+    font-size: 11px;
+    color: var(--text-muted);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    margin-top: 14px;
+  }
+  .primary-note b { color: var(--accent2); font-weight: 500; }
+
+  /* ─── 棒グラフ ─── */
+  .chart-scroll {
+    overflow-x: auto;
+    padding-bottom: 8px;
+  }
+  .chart {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    height: 180px;
+    min-width: 100%;
+    position: relative;
+  }
+  .chart::before {
+    content: '';
+    position: absolute;
+    left: 0; right: 0; top: 50%;
+    border-top: 1px dashed var(--border);
+  }
+  .chart-bar-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 0 0 auto;
+    width: 14px;
+    height: 100%;
+    justify-content: center;
+    position: relative;
+  }
+  .chart-bar {
+    width: 100%;
+    position: absolute;
+    left: 0;
+    border-radius: 2px;
+  }
+  .chart-bar.up { background: var(--red); top: 50%; }
+  .chart-bar.down { background: var(--green); bottom: 50%; }
+  .chart-legend {
+    display: flex;
+    gap: 18px;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+  }
+  .chart-legend .dot { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 5px; vertical-align: middle; }
+  .dot.up { background: var(--red); }
+  .dot.down { background: var(--green); }
+
+  /* ─── イベント一覧テーブル ─── */
+  .table-scroll { overflow-x: auto; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    min-width: 620px;
+  }
+  th, td {
+    text-align: right;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  th { color: var(--text-muted); font-weight: 500; font-size: 10px; letter-spacing: 0.5px; text-transform: uppercase; }
+  th:first-child, td:first-child { text-align: left; }
+  td.note { color: var(--text-muted); font-size: 10px; text-align: left; }
+  .chg { font-weight: 500; }
+  .chg.up { color: var(--red); }
+  .chg.down { color: var(--green); }
+  .chg.primary { text-decoration: underline; text-decoration-color: var(--accent2); text-decoration-thickness: 2px; }
+
+  .ad-slot {
+    display: none;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 11px;
+    letter-spacing: 1px;
+    margin: 28px 0;
+  }
+
+  .explainer { margin-top: 40px; }
+  .explainer h2 {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 18px;
+    margin: 32px 0 12px;
+    color: var(--accent2);
+  }
+  .explainer h2:first-child { margin-top: 0; }
+  .explainer p, .explainer li { font-size: 13px; color: var(--text-muted); margin-bottom: 10px; }
+  .explainer ul { padding-left: 20px; }
+  .explainer code {
+    background: var(--surface2);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+  }
+
+  footer {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-muted);
+    padding: 24px;
+    border-top: 1px solid var(--border);
+  }
+  footer a { color: var(--text-muted); }
+
+  .loading {
+    font-size: 13px;
+    color: var(--text-muted);
+    padding: 30px 0;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">経済指標<span>×ドル円</span>反応分析</div>
+  <span class="badge">BETA</span>
+  <p>指標発表前後のUSD/JPY値動きを集計</p>
+</header>
+
+<div class="wrap">
+
+  <div class="panel">
+    <h2>分析する指標を選択</h2>
+    <div class="sub">過去のイベント発表日を基準に、前営業日・当日・翌営業日のドル円終値を比較します。データ取得には無料為替API(Frankfurter)を利用し、初回のみ全期間分をまとめて取得します。</div>
+
+    <div class="indicator-tabs" id="indicatorTabs">
+      <button type="button" class="ind-tab active" data-ind="nfp">米雇用統計(NFP)</button>
+      <button type="button" class="ind-tab" data-ind="cpi">米CPI</button>
+      <button type="button" class="ind-tab" data-ind="fomc">FOMC政策金利</button>
+      <button type="button" class="ind-tab" data-ind="boj">日銀金融政策決定会合</button>
+    </div>
+
+    <div class="status-line" id="statusLine">データ取得中...</div>
+  </div>
+
+  <div id="resultsArea" style="display:none;">
+
+    <div class="panel">
+      <h2 id="summaryTitle">集計サマリー</h2>
+      <div class="sub" id="summarySub"></div>
+
+      <div class="result-box">
+        <div class="result-item">
+          <div class="r-label">平均変動幅</div>
+          <div class="r-value" id="avgChange">-</div>
+        </div>
+        <div class="result-item">
+          <div class="r-label">平均変動幅(絶対値)</div>
+          <div class="r-value" id="avgAbsChange">-</div>
+        </div>
+        <div class="result-item">
+          <div class="r-label">円安(ドル高)方向</div>
+          <div class="r-value" id="upCount">-</div>
+        </div>
+        <div class="result-item">
+          <div class="r-label">円高(ドル安)方向</div>
+          <div class="r-value" id="downCount">-</div>
+        </div>
+        <div class="result-item">
+          <div class="r-label">最大変動幅</div>
+          <div class="r-value" id="maxChange">-</div>
+        </div>
+      </div>
+
+      <div class="primary-note" id="primaryNote"></div>
+    </div>
+
+    <div class="panel">
+      <h2>イベントごとの反応(棒グラフ)</h2>
+      <div class="sub">横1本が1回のイベント。上に伸びるほど発表後にドル高・円安、下に伸びるほどドル安・円高に動いたことを示します(集計サマリーと同じ「主な反応」区間の変化率)。</div>
+
+      <div class="chart-legend">
+        <span><span class="dot up"></span>ドル高・円安方向</span>
+        <span><span class="dot down"></span>ドル安・円高方向</span>
+      </div>
+
+      <div class="chart-scroll">
+        <div class="chart" id="chart"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>個別イベント一覧</h2>
+      <div class="sub">直近のイベントが上に表示されます。「主な反応」列に下線が付いている区間が、その指標の発表タイミングを最も素直に反映する変化率です。</div>
+
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>発表日</th>
+              <th>前営業日終値</th>
+              <th>当日終値</th>
+              <th>翌営業日終値</th>
+              <th>前日→当日</th>
+              <th>当日→翌日</th>
+            </tr>
+          </thead>
+          <tbody id="eventTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="ad-slot">広告枠(Google AdSense設置予定)</div>
+
+  <div class="explainer">
+    <h2>データの見方・算出方法</h2>
+    <p>ドル円の値は<a href="https://www.frankfurter.dev/" target="_blank" rel="noopener">Frankfurter API</a>(ECBが公表する日次参考レートに基づく無料API、キー登録不要)から取得しています。ECBの参考レートは中央欧州時間16時頃(日本時間夜〜深夜、UTCではおおむね14時前後)に確定するため、各指標の発表時刻との前後関係によって「どの区間が発表の反応を最も表しているか」が変わります。</p>
+    <ul>
+      <li><b>米雇用統計・米CPI</b>(米東部時間8:30発表)と<b>日銀会合</b>(日本時間午前〜正午前後に公表されることが多い)は、ECB参考レート確定より前に発表されるため、「前営業日→当日」の変化が発表直後の反応に近くなります。</li>
+      <li><b>FOMC政策金利発表</b>(米東部時間14:00発表)はECB参考レート確定より後になるため、「当日→翌営業日」の変化の方が発表の反応を表します。</li>
+    </ul>
+    <p>この見立てに基づき、集計サマリーとグラフでは指標ごとに該当する区間を「主な反応」として自動選択して表示しています。ただし実際の反応は数分〜数時間で完結することが多く、日足終値の比較はあくまで近似です。</p>
+
+    <h2>イベント日程について</h2>
+    <p>各指標の発表日は、FRB・日本銀行・米労働省労働統計局(BLS)の公式発表および複数の経済カレンダーサイトを突き合わせて作成しています。2025年10月〜2026年年始にかけては米政府機関の一部閉鎖(政府シャットダウン)の影響でCPI・雇用統計の発表日程が例年と異なる(延期・中止・統合発表)期間があり、該当する回には注記を付けています。</p>
+
+    <h2>ご利用にあたっての注意</h2>
+    <ul>
+      <li>本ツールは過去の値動きを集計した参考情報であり、将来の値動きを予測・保証するものではありません。投資助言ではなく、特定の金融商品や取引を推奨するものでもありません。</li>
+      <li>為替データは日次終値ベースの近似であり、発表直後の数分〜数時間の値動き(スプレッドの急拡大や瞬間的な急変動)は反映されません。</li>
+      <li>取得した為替データ・イベント日程は表示時点のものです。祝日・データ提供元の仕様変更等により、実際の値と差異が生じる場合があります。</li>
+      <li>入力・選択内容はこの端末のブラウザ内だけで処理され、サーバーへの送信・保存はされません(為替データ取得のみ外部APIと通信します)。</li>
+    </ul>
+  </div>
+</div>
+
+<footer>
+  本ツールは参考情報の提供を目的とした集計ツールであり、投資助言ではありません。投資判断はご自身の責任で行ってください。 &middot; <a href="../">webtools トップへ</a>
+</footer>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+
+  // ─── イベント日程データ ───
+  // 出典: FRB(FOMC)/日本銀行(BOJ)公式カレンダー、米労働省労働統計局(BLS)発表予定・アーカイブ、
+  // 複数の経済カレンダーサイト(EBC Financial Group, usinflationcalculator.com 等)を突き合わせて作成。
+  const EVENTS = {
+    nfp: {
+      label: '米雇用統計(NFP)',
+      desc: '米労働省が発表する非農業部門雇用者数・失業率。ドル円への影響が特に大きい指標のひとつとされます。',
+      primary: 'today', // 前日→当日 が主な反応
+      list: [
+        { date: '2024-01-05' }, { date: '2024-02-02' }, { date: '2024-03-08' }, { date: '2024-04-05' },
+        { date: '2024-05-03' }, { date: '2024-06-07' }, { date: '2024-07-05' }, { date: '2024-08-02' },
+        { date: '2024-09-06' }, { date: '2024-10-04' }, { date: '2024-11-01' }, { date: '2024-12-06' },
+        { date: '2025-01-10' }, { date: '2025-02-07' }, { date: '2025-03-07' }, { date: '2025-04-04' },
+        { date: '2025-05-02' }, { date: '2025-06-06' }, { date: '2025-07-03' }, { date: '2025-08-01' },
+        { date: '2025-09-05' },
+        { date: '2026-02-11', note: '政府閉鎖の影響で延期' },
+        { date: '2026-03-06' }, { date: '2026-04-03' }, { date: '2026-05-08' }, { date: '2026-06-05' },
+        { date: '2026-07-02' }, { date: '2026-08-07' },
+      ],
+    },
+    cpi: {
+      label: '米CPI(消費者物価指数)',
+      desc: '米労働省が発表する消費者物価指数。インフレ動向を示す代表的な指標です。',
+      primary: 'today',
+      list: [
+        { date: '2024-02-13' }, { date: '2024-03-12' }, { date: '2024-04-10' }, { date: '2024-05-15' },
+        { date: '2024-06-12' }, { date: '2024-07-11' }, { date: '2024-08-14' }, { date: '2024-09-11' },
+        { date: '2024-10-10' }, { date: '2024-11-13' }, { date: '2024-12-11' },
+        { date: '2025-01-15' }, { date: '2025-02-12' }, { date: '2025-03-12' }, { date: '2025-04-10' },
+        { date: '2025-05-13' }, { date: '2025-06-11' }, { date: '2025-07-15' }, { date: '2025-08-12' },
+        { date: '2025-09-11' },
+        { date: '2025-10-24', note: '政府閉鎖の影響で延期(9月分)' },
+        { date: '2025-12-18', note: '政府閉鎖の影響で延期(11月分、10月分は中止)' },
+        { date: '2026-01-13' }, { date: '2026-02-13', note: '延期(1月分)' }, { date: '2026-03-11' },
+        { date: '2026-04-10' }, { date: '2026-05-12' }, { date: '2026-06-10' }, { date: '2026-07-14' },
+        { date: '2026-08-12' },
+      ],
+    },
+    fomc: {
+      label: 'FOMC政策金利発表',
+      desc: 'FRB(米連邦準備制度理事会)の連邦公開市場委員会(FOMC)による政策金利発表。年8回開催。',
+      primary: 'next', // 当日→翌日 が主な反応(ECB参考レート確定後に発表されるため)
+      list: [
+        { date: '2024-01-31' }, { date: '2024-03-20' }, { date: '2024-05-01' }, { date: '2024-06-12' },
+        { date: '2024-07-31' }, { date: '2024-09-18' }, { date: '2024-11-07' }, { date: '2024-12-18' },
+        { date: '2025-01-29' }, { date: '2025-03-19' }, { date: '2025-05-07' }, { date: '2025-06-18' },
+        { date: '2025-07-30' }, { date: '2025-09-17' }, { date: '2025-10-29' }, { date: '2025-12-10' },
+        { date: '2026-01-28' }, { date: '2026-03-18' }, { date: '2026-04-29' }, { date: '2026-06-17' },
+        { date: '2026-07-29' },
+      ],
+    },
+    boj: {
+      label: '日銀金融政策決定会合',
+      desc: '日本銀行の金融政策決定会合。年8回開催され、最終日に政策決定が公表されます。',
+      primary: 'today',
+      list: [
+        { date: '2024-01-23' }, { date: '2024-03-19' }, { date: '2024-04-26' }, { date: '2024-06-14' },
+        { date: '2024-07-31' }, { date: '2024-09-20' }, { date: '2024-10-31' }, { date: '2024-12-19' },
+        { date: '2025-01-24' }, { date: '2025-03-19' }, { date: '2025-05-01' }, { date: '2025-06-17' },
+        { date: '2025-07-31' }, { date: '2025-09-19' }, { date: '2025-10-30' }, { date: '2025-12-19' },
+        { date: '2026-01-23' }, { date: '2026-03-19' }, { date: '2026-04-28' }, { date: '2026-06-16' },
+        { date: '2026-07-31' },
+      ],
+    },
+  };
+
+  const RANGE_START = '2023-12-01';
+  const todayStr = new Date().toISOString().slice(0, 10);
+
+  let ratesMap = null; // { 'YYYY-MM-DD': rate }
+  let currentInd = 'nfp';
+
+  function addDays(dateStr, n) {
+    const d = new Date(dateStr + 'T00:00:00Z');
+    d.setUTCDate(d.getUTCDate() + n);
+    return d.toISOString().slice(0, 10);
+  }
+
+  function findOnOrBefore(dateStr) {
+    let d = dateStr;
+    for (let i = 0; i < 10; i++) {
+      if (ratesMap[d] != null) return d;
+      d = addDays(d, -1);
+    }
+    return null;
+  }
+
+  function findOnOrAfter(dateStr) {
+    let d = dateStr;
+    for (let i = 0; i < 10; i++) {
+      if (ratesMap[d] != null) return d;
+      d = addDays(d, 1);
+    }
+    return null;
+  }
+
+  async function loadRates() {
+    const url = `https://api.frankfurter.dev/v1/${RANGE_START}..${todayStr}?base=USD&symbols=JPY`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('APIリクエストに失敗しました(status ' + res.status + ')');
+    const data = await res.json();
+    const map = {};
+    for (const [date, obj] of Object.entries(data.rates)) {
+      map[date] = obj.JPY;
+    }
+    return map;
+  }
+
+  function computeEventRow(ev) {
+    const tDate = findOnOrBefore(ev.date);
+    if (!tDate) return null;
+    const t1Date = findOnOrBefore(addDays(tDate, -1));
+    const t2Date = findOnOrAfter(addDays(tDate, 1));
+    if (!t1Date || !t2Date) return null;
+
+    const rT1 = ratesMap[t1Date];
+    const rT = ratesMap[tDate];
+    const rT2 = ratesMap[t2Date];
+
+    const chgToday = ((rT - rT1) / rT1) * 100;
+    const chgNext = ((rT2 - rT) / rT) * 100;
+
+    return {
+      ...ev,
+      resolvedDate: tDate,
+      t1Date, tDate, t2Date,
+      rT1, rT, rT2,
+      chgToday, chgNext,
+    };
+  }
+
+  function fmtPct(n) {
+    if (!Number.isFinite(n)) return '-';
+    const sign = n > 0 ? '+' : '';
+    return sign + n.toFixed(2) + '%';
+  }
+
+  function fmtRate(n) {
+    if (!Number.isFinite(n)) return '-';
+    return n.toFixed(2);
+  }
+
+  function render() {
+    const ind = EVENTS[currentInd];
+    const rows = ind.list.map(computeEventRow).filter(r => r && r.tDate <= todayStr && r.t2Date <= todayStr);
+    const primaryKey = ind.primary === 'today' ? 'chgToday' : 'chgNext';
+    const primaryLabelDesc = ind.primary === 'today' ? '前営業日→当日' : '当日→翌営業日';
+
+    $('summaryTitle').textContent = ind.label + ' の集計サマリー';
+    $('summarySub').textContent = ind.desc + `(集計対象: ${rows.length}件、主な反応区間: ${primaryLabelDesc})`;
+
+    const primaryVals = rows.map(r => r[primaryKey]);
+    const avg = primaryVals.reduce((a, b) => a + b, 0) / primaryVals.length;
+    const avgAbs = primaryVals.reduce((a, b) => a + Math.abs(b), 0) / primaryVals.length;
+    const upCount = primaryVals.filter(v => v > 0).length;
+    const downCount = primaryVals.filter(v => v < 0).length;
+    const maxAbs = primaryVals.reduce((m, v) => Math.abs(v) > Math.abs(m) ? v : m, 0);
+
+    const avgEl = $('avgChange');
+    avgEl.textContent = fmtPct(avg);
+    avgEl.className = 'r-value ' + (avg > 0 ? 'up' : avg < 0 ? 'down' : '');
+
+    $('avgAbsChange').textContent = avgAbs.toFixed(2) + '%';
+    $('upCount').innerHTML = upCount + '<span> / ' + primaryVals.length + '回</span>';
+    $('downCount').innerHTML = downCount + '<span> / ' + primaryVals.length + '回</span>';
+
+    const maxEl = $('maxChange');
+    maxEl.textContent = fmtPct(maxAbs);
+    maxEl.className = 'r-value ' + (maxAbs > 0 ? 'up' : maxAbs < 0 ? 'down' : '');
+
+    $('primaryNote').innerHTML = ind.primary === 'today'
+      ? `この指標は米東部時間8:30または日本時間午前〜正午前後の発表のため、為替レート確定(ECB基準・日本時間夜)より前に反応が出ます。そのため<b>「前営業日→当日」の変化率</b>を主な反応として集計しています。`
+      : `この指標は米東部時間14:00発表のため、為替レート確定(ECB基準・日本時間夜)より後に発表されます。そのため<b>「当日→翌営業日」の変化率</b>を主な反応として集計しています。`;
+
+    renderChart(rows, primaryKey);
+    renderTable(rows, primaryKey);
+
+    $('resultsArea').style.display = '';
+  }
+
+  function renderChart(rows, primaryKey) {
+    const chart = $('chart');
+    chart.innerHTML = '';
+    const maxAbs = Math.max(...rows.map(r => Math.abs(r[primaryKey])), 0.01);
+    rows.forEach(r => {
+      const v = r[primaryKey];
+      const wrap = document.createElement('div');
+      wrap.className = 'chart-bar-wrap';
+
+      const bar = document.createElement('div');
+      bar.className = 'chart-bar ' + (v >= 0 ? 'up' : 'down');
+      const heightPct = (Math.abs(v) / maxAbs) * 50;
+      bar.style.height = heightPct + '%';
+      bar.title = `${r.date}: ${fmtPct(v)}`;
+
+      wrap.appendChild(bar);
+      chart.appendChild(wrap);
+    });
+  }
+
+  function renderTable(rows, primaryKey) {
+    const tbody = $('eventTableBody');
+    tbody.innerHTML = '';
+    const sorted = [...rows].sort((a, b) => b.date.localeCompare(a.date));
+    sorted.forEach(r => {
+      const tr = document.createElement('tr');
+
+      const dateTd = document.createElement('td');
+      dateTd.textContent = r.date;
+      if (r.note) {
+        const noteSpan = document.createElement('div');
+        noteSpan.className = 'note';
+        noteSpan.textContent = '※' + r.note;
+        dateTd.appendChild(noteSpan);
+      }
+      tr.appendChild(dateTd);
+
+      [r.rT1, r.rT, r.rT2].forEach(v => {
+        const td = document.createElement('td');
+        td.textContent = fmtRate(v);
+        tr.appendChild(td);
+      });
+
+      const chg1 = document.createElement('td');
+      chg1.textContent = fmtPct(r.chgToday);
+      chg1.className = 'chg ' + (r.chgToday >= 0 ? 'up' : 'down') + (primaryKey === 'chgToday' ? ' primary' : '');
+      tr.appendChild(chg1);
+
+      const chg2 = document.createElement('td');
+      chg2.textContent = fmtPct(r.chgNext);
+      chg2.className = 'chg ' + (r.chgNext >= 0 ? 'up' : 'down') + (primaryKey === 'chgNext' ? ' primary' : '');
+      tr.appendChild(chg2);
+
+      tbody.appendChild(tr);
+    });
+  }
+
+  function initTabs() {
+    document.querySelectorAll('.ind-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.ind-tab').forEach(t => t.classList.toggle('active', t === tab));
+        currentInd = tab.dataset.ind;
+        render();
+      });
+    });
+  }
+
+  async function init() {
+    initTabs();
+    try {
+      ratesMap = await loadRates();
+      $('statusLine').textContent = `ドル円データ取得完了(${RANGE_START} 〜 ${todayStr}、Frankfurter API)`;
+      render();
+    } catch (e) {
+      $('statusLine').textContent = 'データ取得に失敗しました。時間をおいて再読み込みしてください。(' + e.message + ')';
+      $('statusLine').classList.add('error');
+    }
+  }
+
+  init();
+</script>
+
+</body>
+</html>
